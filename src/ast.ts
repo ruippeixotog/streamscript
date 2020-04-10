@@ -1,5 +1,3 @@
-/* @flow */
-
 // export type SSLang<T> = {
 //   Module: { stmts: T[] },
 //   Import: { moduleName: string },
@@ -29,31 +27,31 @@ export type SSNode =
   { uuid: string, type: 'FunDecl', funName: string, funDef: SSNode } |
   { uuid: string, type: 'BinOp', operator: string, lhs: SSNode, rhs: SSNode } |
   { uuid: string, type: 'UnOp', operator: string, arg: SSNode } |
-  { uuid: string, type: 'Var', moduleName: ?string, name: string } |
+  { uuid: string, type: 'Var', moduleName: string | null, name: string } |
   { uuid: string, type: 'Index', coll: SSNode, index: SSNode } |
-  { uuid: string, type: 'Lambda', ins: SSNode[], outs: ?SSNode[], body: SSNode[] } |
+  { uuid: string, type: 'Lambda', ins: SSNode[], outs: SSNode[] | null, body: SSNode[] } |
   { uuid: string, type: 'FunAppl', func: SSNode, args: SSNode[] } |
   { uuid: string, type: 'Tuple', elems: SSNode[] } |
   { uuid: string, type: 'Literal', value: string | number | boolean | null } |
   { uuid: string, type: 'Array', elems: SSNode[] } |
   { uuid: string, type: 'Object', elems: [string, SSNode][] };
 
-export type SSNodeType = $PropertyType<SSNode, 'type'>;
+export type SSNodeType = SSNode['type']; // $PropertyType<SSNode, 'type'>;
 
 export type SSAlgebra<T> = {
-  Module: { uuid: string, stmts: T[] } => T,
-  Import: { uuid: string, moduleName: string } => T,
-  FunDecl: { uuid: string, funName: string, funDef: T } => T,
-  BinOp: { uuid: string, operator: string, lhs: T, rhs: T } => T,
-  UnOp: { uuid: string, operator: string, arg: T } => T,
-  Var: { uuid: string, moduleName: ?string, name: string } => T,
-  Index: { uuid: string, coll: T, index: T } => T,
-  Lambda: { uuid: string, ins: T[], outs: ?T[], body: T[] } => T,
-  FunAppl: { uuid: string, func: T, args: T[] } => T,
-  Tuple: { uuid: string, elems: T[] } => T,
-  Literal: { uuid: string, value: string | number | boolean | null } => T,
-  Array: { uuid: string, elems: T[] } => T,
-  Object: { uuid: string, elems: [string, T][] } => T
+  Module: (x: { uuid: string, stmts: T[] }) => T,
+  Import: (x: { uuid: string, moduleName: string }) => T,
+  FunDecl: (x: { uuid: string, funName: string, funDef: T }) => T,
+  BinOp: (x: { uuid: string, operator: string, lhs: T, rhs: T }) => T,
+  UnOp: (x: { uuid: string, operator: string, arg: T }) => T,
+  Var: (x: { uuid: string, moduleName: string | null, name: string }) => T,
+  Index: (x: { uuid: string, coll: T, index: T }) => T,
+  Lambda: (x: { uuid: string, ins: T[], outs: T[] | null, body: T[] }) => T,
+  FunAppl: (x: { uuid: string, func: T, args: T[] }) => T,
+  Tuple: (x: { uuid: string, elems: T[] }) => T,
+  Literal: (x: { uuid: string, value: string | number | boolean | null }) => T,
+  Array: (x: { uuid: string, elems: T[] }) => T,
+  Object: (x: { uuid: string, elems: [string, T][] }) => T
 };
 
 function fold<T>(node: SSNode, fs: SSAlgebra<T>): T {
@@ -77,7 +75,7 @@ function fold<T>(node: SSNode, fs: SSAlgebra<T>): T {
       return fs[node.type]({
         ...node,
         ins: node.ins.map(fold1),
-        outs: node.outs?.map(fold1),
+        outs: node.outs ? node.outs.map(fold1) : null,
         body: node.body.map(fold1)
       });
     case "FunAppl":

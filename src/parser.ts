@@ -1,5 +1,3 @@
-/* @flow */
-
 import fs from "fs";
 import ohm from "ohm-js";
 import type { SSNodeType, SSNode } from "./ast";

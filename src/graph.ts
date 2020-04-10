@@ -1,5 +1,3 @@
-/* @flow */
-
 import util from "./graph_util";
 import { Set, Map } from "immutable";
 
@@ -26,11 +24,11 @@ class Graph {
 
   constructor(components: Map<string, ComponentSpec>) {
     this.components = components;
-    this.nodes = new Map();
-    this.edges = new Set();
-    this.initials = new Map();
-    this.externalIns = new Set();
-    this.externalOuts = new Set();
+    this.nodes = Map();
+    this.edges = Set();
+    this.initials = Map();
+    this.externalIns = Set();
+    this.externalOuts = Set();
   }
 
   addNode(nodeId: string, componentId: string): NodeSpec {

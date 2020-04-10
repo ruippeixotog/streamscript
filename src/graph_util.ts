@@ -1,5 +1,3 @@
-/* @flow */
-
 import type noflo from "noflo";
 import type { SymbolInfo, InPort, OutPort } from "./symbol_table";
 import assert from "assert";
@@ -56,7 +54,7 @@ function nodeIdForConst(value: any): string {
   return `Const: ${JSON.stringify(value)}`;
 }
 
-function nodeIdForVar(moduleName: ?string, name: string): string {
+function nodeIdForVar(moduleName: string | null, name: string): string {
   return `Var: ${moduleName ? moduleName + "." : ""}${name}`;
 }
 

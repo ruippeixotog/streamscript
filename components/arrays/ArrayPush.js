@@ -1,5 +1,3 @@
-/* @noflow */
-
 const noflo = require("noflo");
 
 exports.getComponent = () => {

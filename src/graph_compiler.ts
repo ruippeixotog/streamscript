@@ -1,5 +1,3 @@
-/* @flow */
-
 import { fold } from "./ast";
 import util from "./graph_util";
 // import SymbolTable from "./symbol_table";
@@ -14,7 +12,7 @@ import parser from "./parser";
 function compileGraph(
   ast: SSNode,
   graph: Graph,
-  rootModuleName: ?string,
+  rootModuleName: string | null,
   isRoot: boolean): NodeSpec {
 
   const moduleNode = graph.addNode(
@@ -51,7 +49,7 @@ function compileGraph(
       throw new Error("not implemented");
     },
     BinOp: ({ uuid, operator, lhs, rhs }) => {
-      const ops: {[string]: string} = {
+      const ops: {[key: string]: string} = {
         "||": "streamscript/Or",
         "&&": "streamscript/And",
         "<=": "streamscript/Lte",
@@ -78,7 +76,7 @@ function compileGraph(
       return graph.connectNodesBin(lhs, rhs, graph.addNode(nodeId, componentId));
     },
     UnOp: ({ uuid, operator, arg }) => {
-      const ops: {[string]: string} = {
+      const ops: {[key: string]: string} = {
         "-": "streamscript/Negate",
         "!": "streamscript/Not"
       };

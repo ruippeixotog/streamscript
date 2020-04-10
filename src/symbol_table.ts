@@ -1,5 +1,3 @@
-/* @flow */
-
 export type Port = { nodeId: string, portName: string };
 export type InPort = Port;
 export type OutPort = Port;
@@ -14,11 +12,11 @@ export type ComponentInfo = {
   outs: string[],
 };
 
-export type SymbolMap = { [string]: SymbolInfo };
+export type SymbolMap = { [key: string]: SymbolInfo };
 
 class SymbolTable {
-  components: { [string]: ComponentInfo };
-  namespaces: { [string]: SymbolMap };
+  components: { [key: string]: ComponentInfo };
+  namespaces: { [key: string]: SymbolMap };
   scopedVars: SymbolMap[];
 
   constructor() {
@@ -43,7 +41,7 @@ class SymbolTable {
     this.components[name] = schema;
   }
 
-  getSymbol(moduleName: ?string, name: string): ?SymbolInfo {
+  getSymbol(moduleName: string | null, name: string): SymbolInfo | null {
     if (moduleName) {
       return this.namespaces[moduleName][name];
     }
