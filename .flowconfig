@@ -1,0 +1,12 @@
+[options]
+esproposal.optional_chaining=enable
+
+[ignore]
+<PROJECT_ROOT>/node_modules/@babel/.*
+<PROJECT_ROOT>/node_modules/coffeescript/.*
+
+[untyped]
+<PROJECT_ROOT>/node_modules/ohm-js/.*
+
+[declarations]
+<PROJECT_ROOT>/node_modules/.*

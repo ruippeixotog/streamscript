@@ -1,0 +1,166 @@
+StreamStript {
+  Start = Module
+
+
+  /**********
+   * Module
+   **********/
+
+  Module
+    = Stmt*
+
+
+  /**********
+   * Statements
+   **********/
+
+  Stmt
+    = Import
+    | FunDecl
+    | Expr
+
+  Import
+    = "import" ident
+
+  FunDecl
+    = ident Lambda
+
+
+  /**********
+   * Expressions
+   **********/
+
+  Expr
+    = Expr binOpP1 Expr1      -- operator
+    | Expr1
+
+  Expr1
+    = Expr1 binOpP2 Expr2     -- operator
+    | Expr2
+
+  Expr2
+    = Expr2 binOpP3 Expr3     -- operator
+    | Expr3
+
+  Expr3
+    = Expr3 binOpP4 Expr4     -- operator
+    | Expr4
+
+  Expr4
+    = Expr4 binOpP5 Expr5     -- operator
+    | Expr5
+
+  Expr5
+    = Expr5 binOpP6 Expr6     -- operator
+    | Expr6
+
+  Expr6
+    = unOp Expr6               -- operator
+    | ExprBase
+
+  ExprBase
+    = FunAppl
+    | Lambda
+    | Tuple
+    | VarAccess
+    | Literal
+    | Array
+    | Object
+
+  VarAccess
+    = (ident ".")? ident ("[" Expr "]")*
+
+  FunAppl
+    = VarAccess "(" ListOf<(wildcard | Expr), ","> ")"
+
+  Lambda
+    = "(" ListOf<ident, ","> ")" "=>" ident? "{" Expr* "}"                        -- full
+    | "(" ListOf<ident, ","> ")" "=>" "(" ListOf<ident, ","> ")" "{" Expr* "}"    -- simple
+
+  Tuple
+    = "(" NonemptyListOf<Expr, ","> ")"
+
+  Literal
+    = null
+    | bool
+    | number
+    | string
+
+  Array
+    = "[" ListOf<Expr, ","> "]"
+
+  Object
+    = "{" ListOf<ObjectPair, ","> "}"
+
+  ObjectPair
+    = string ":" Expr
+
+
+  /**********
+   * Tokens
+   **********/
+
+  ident
+    = ~keyword letter alnum*
+
+  number
+    = digit* "." digit+  -- fract
+    | digit+             -- integer
+
+  bool
+    = "true"
+    | "false"
+
+  null
+    = "null"
+
+  string
+    = "\"" stringChar* "\""
+
+  stringChar
+    = ~("\"" | "\\") any          -- nonEscaped
+    | "\\" stringSpecialChar      -- escaped
+
+  stringSpecialChar
+    = "\""
+    | "\\"
+    | "/"
+    | "b"
+    | "f"
+    | "n"
+    | "r"
+    | "t"
+    | "u" hexDigit hexDigit hexDigit hexDigit   -- codePoint
+
+  binOpP1     (a binary operator)
+    = "<-" | "->"
+
+  binOpP2     (a binary operator)
+    = "||"
+
+  binOpP3     (a binary operator)
+    = "&&"
+
+  binOpP4     (a binary operator)
+    = ~binOpP1 ("<=" | "<" | "==" | "!=" | ">=" | ">")
+
+  binOpP5     (a binary operator)
+    = "+" | "-"
+
+  binOpP6     (a binary operator)
+    = "*" | "/" | "%"
+
+  unOp         (a unary operator)
+    = ~binOpP1 ("-" | "!")
+
+  wildcard
+    = "_"
+
+  keyword
+    = ("import" | "true" | "false" | "null") ~alnum
+
+  space += comment
+  comment
+    = "/*" (~"*/" any)* "*/"
+    | "//" (~"\n" any)* "\n"
+}
