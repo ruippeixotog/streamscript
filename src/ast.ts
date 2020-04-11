@@ -4,9 +4,9 @@
 //   FunDecl: { funName: string, body: T },
 //   BinOp: { operator: string, lhs: T, rhs: T },
 //   UnOp: { operator: string, arg: T },
-//   Var: { moduleName: ?string, name: string },
+//   Var: { moduleName: string | null, name: string },
 //   Index: { coll: T, index: T },
-//   Lambda: { ins: T[], outs: ?T[], body: T },
+//   Lambda: { ins: T[], outs: T[] | null, body: T },
 //   FunAppl: { func: T, args: T[] },
 //   Tuple: { elems: T[] },
 //   Literal: { value: string | number | boolean | null },
@@ -38,59 +38,48 @@ export type SSNode =
 
 export type SSNodeType = SSNode['type']; // $PropertyType<SSNode, 'type'>;
 
-export type SSAlgebra<T> = {
-  Module: (x: { uuid: string, stmts: T[] }) => T,
-  Import: (x: { uuid: string, moduleName: string }) => T,
-  FunDecl: (x: { uuid: string, funName: string, funDef: T }) => T,
-  BinOp: (x: { uuid: string, operator: string, lhs: T, rhs: T }) => T,
-  UnOp: (x: { uuid: string, operator: string, arg: T }) => T,
-  Var: (x: { uuid: string, moduleName: string | null, name: string }) => T,
-  Index: (x: { uuid: string, coll: T, index: T }) => T,
-  Lambda: (x: { uuid: string, ins: T[], outs: T[] | null, body: T[] }) => T,
-  FunAppl: (x: { uuid: string, func: T, args: T[] }) => T,
-  Tuple: (x: { uuid: string, elems: T[] }) => T,
-  Literal: (x: { uuid: string, value: string | number | boolean | null }) => T,
-  Array: (x: { uuid: string, elems: T[] }) => T,
-  Object: (x: { uuid: string, elems: [string, T][] }) => T
+export type SSAction<T, U> = {
+  Module: (x: { uuid: string, stmts: T[] }) => U,
+  Import: (x: { uuid: string, moduleName: string }) => U,
+  FunDecl: (x: { uuid: string, funName: string, funDef: T }) => U,
+  BinOp: (x: { uuid: string, operator: string, lhs: T, rhs: T }) => U,
+  UnOp: (x: { uuid: string, operator: string, arg: T }) => U,
+  Var: (x: { uuid: string, moduleName: string | null, name: string }) => U,
+  Index: (x: { uuid: string, coll: T, index: T }) => U,
+  Lambda: (x: { uuid: string, ins: T[], outs: T[] | null, body: T[] }) => U,
+  FunAppl: (x: { uuid: string, func: T, args: T[] }) => U,
+  Tuple: (x: { uuid: string, elems: T[] }) => U,
+  Literal: (x: { uuid: string, value: string | number | boolean | null }) => U,
+  Array: (x: { uuid: string, elems: T[] }) => U,
+  Object: (x: { uuid: string, elems: [string, T][] }) => U
 };
 
-function fold<T>(node: SSNode, fs: SSAlgebra<T>): T {
+function fold<T>(node: SSNode, fs: SSAction<T, T>): T {
   const fold1 = (n: SSNode) => fold(n, fs);
-  switch (node.type) {
-    case "Module":
-      return fs[node.type]({ ...node, stmts: node.stmts.map(fold1) });
-    case "Import":
-      return fs[node.type](node);
-    case "FunDecl":
-      return fs[node.type]({ ...node, funDef: fold1(node.funDef) });
-    case "BinOp":
-      return fs[node.type]({ ...node, lhs: fold1(node.lhs), rhs: fold1(node.rhs) });
-    case "UnOp":
-      return fs[node.type]({ ...node, arg: fold1(node.arg) });
-    case "Var":
-      return fs[node.type](node);
-    case "Index":
-      return fs[node.type]({ ...node, coll: fold1(node.coll), index: fold1(node.index) });
-    case "Lambda":
-      return fs[node.type]({
-        ...node,
-        ins: node.ins.map(fold1),
-        outs: node.outs ? node.outs.map(fold1) : null,
-        body: node.body.map(fold1)
-      });
-    case "FunAppl":
-      return fs[node.type]({ ...node, func: fold1(node.func), args: node.args.map(fold1) });
-    case "Tuple":
-      return fs[node.type]({ ...node, elems: node.elems.map(fold1) });
-    case "Literal":
-      return fs[node.type](node);
-    case "Array":
-      return fs[node.type]({ ...node, elems: node.elems.map(fold1) });
-    case "Object":
-      return fs[node.type]({ ...node, elems: node.elems.map(([k, v]) => [k, fold1(v)]) });
-    default:
-      throw new Error("fail");
-  }
+  return run<T>(node, {
+    Module: v => fs['Module']({ ...v, stmts: v.stmts.map(fold1) }),
+    Import: v => fs['Import'](v),
+    FunDecl: v => fs['FunDecl']({ ...v, funDef: fold1(v.funDef) }),
+    BinOp: v => fs['BinOp']({ ...v, lhs: fold1(v.lhs), rhs: fold1(v.rhs) }),
+    UnOp: v => fs['UnOp']({ ...v, arg: fold1(v.arg) }),
+    Var: v => fs['Var'](v),
+    Index: v => fs['Index']({ ...v, coll: fold1(v.coll), index: fold1(v.index) }),
+    Lambda: v => fs['Lambda']({...v,
+      ins: v.ins.map(fold1),
+      outs: v.outs ? v.outs.map(fold1) : null,
+      body: v.body.map(fold1)
+    }),
+    FunAppl: v => fs['FunAppl']({ ...v, func: fold1(v.func), args: v.args.map(fold1) }),
+    Tuple: v => fs['Tuple']({ ...v, elems: v.elems.map(fold1) }),
+    Literal: v => fs['Literal'](v),
+    Array: v => fs['Array']({ ...v, elems: v.elems.map(fold1) }),
+    Object: v => fs['Object']({ ...v, elems: v.elems.map(([k, v]) => [k, fold1(v)]) })
+  });
+}
+
+function run<T>(node: SSNode, fs: SSAction<SSNode, T>): T {
+  // @ts-ignore: type of fs ensures node has the correct type
+  return fs[node.type](node);
 }
 
 function render(node: SSNode): string {
@@ -111,4 +100,4 @@ function render(node: SSNode): string {
   });
 }
 
-export { fold, render };
+export { fold, run, render };
