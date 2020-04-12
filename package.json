@@ -33,6 +33,7 @@
   },
   "scripts": {
     "start": "babel-node --extensions \".js,.ts\" src/main.ts",
-    "lint": "eslint src/**/* && tsc"
+    "lint": "eslint src/**/*",
+    "check-types": "tsc"
   }
 }
