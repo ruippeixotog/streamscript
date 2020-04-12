@@ -19,16 +19,18 @@ class Graph {
   nodes: Map<string, string>;
   edges: Set<[InPort, OutPort]>;
   initials: Map<InPort, any>;
-  externalIns: Set<InPort>;
-  externalOuts: Set<OutPort>;
+  subgraphs: Map<string, Graph>;
+  externalIns: InPort[];
+  externalOuts: OutPort[];
 
   constructor(components: Map<string, ComponentSpec>) {
     this.components = components;
     this.nodes = Map();
     this.edges = Set();
     this.initials = Map();
-    this.externalIns = Set();
-    this.externalOuts = Set();
+    this.subgraphs = Map();
+    this.externalIns = [];
+    this.externalOuts = [];
   }
 
   addNode(nodeId: string, componentId: string): NodeSpec {
@@ -91,12 +93,16 @@ class Graph {
     return { ins: closeIns ? [] : from.flatMap(e => e.ins), outs: to.outs };
   }
 
-  addExternalIn(port: InPort): void {
-    this.externalIns = this.externalIns.add(port);
+  addSubgraph(subgraphId: string, subgraph: Graph): void {
+    this.subgraphs = this.subgraphs.set(subgraphId, subgraph);
   }
 
-  addExternalOut(port: OutPort): void {
-    this.externalOuts = this.externalOuts.add(port);
+  setExternalIns(ins: InPort[]): void {
+    this.externalIns = ins;
+  }
+
+  setExternalOuts(outs: OutPort[]): void {
+    this.externalOuts = outs;
   }
 
   print() {

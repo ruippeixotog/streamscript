@@ -1,13 +1,15 @@
 import { run } from "./ast";
-import util from "./graph_util";
-// import SymbolTable from "./symbol_table";
-import type { SSNode } from "./ast";
-// import type { SymbolInfo } from "./symbol_table";
 import Graph from "./graph";
-import type { NodeSpec } from "./graph";
+import util from "./graph_util";
+import GraphX from "./graph_x";
 import parser from "./parser";
+import type { SSNode } from "./ast";
+import type { NodeSpec } from "./graph";
 
-// const st = new SymbolTable();
+export type SubgraphSpec = {
+  spec: NodeSpec,
+  impl: Graph
+}
 
 function compileGraph(
   ast: SSNode,
@@ -15,46 +17,34 @@ function compileGraph(
   rootModuleName: string | null,
   isRoot: boolean): NodeSpec {
 
-  const moduleNode = graph.addNode(
-    util.nodeIdForModule(rootModuleName ?? "__main"),
-    "core/Repeat"
-  );
-  if (isRoot) {
-    graph.addExternalIn(moduleNode.ins[0]);
-  }
+  const graphX = new GraphX(graph, rootModuleName ?? "__main");
 
   if (rootModuleName === "io") {
-    graph.addNode(util.nodeIdForVar(rootModuleName, "stdout"), "core/Output");
-  }
-
-  function createNodeForConst(value: any): NodeSpec {
-    const node = graph.addNode(util.nodeIdForConst(value), "core/Kick");
-    graph.connectPorts(moduleNode.outs[0], node.ins[0]);
-    graph.setInitial(node.ins[1], value);
-    return { ins: [], outs: node.outs };
+    graph.addNode(graphX.nodeIdForVar(rootModuleName, "stdout"), "core/Output");
   }
 
   function build(node: SSNode): NodeSpec {
     return run<NodeSpec>(node, {
       Module: ({ stmts }) => {
-        stmts.map(build);
+        const moduleNode = graphX.addModuleNode();
+        if (isRoot) {
+          graph.setExternalIns(moduleNode.ins);
+        }
+        stmts.forEach(build);
         return moduleNode;
       },
       Import: ({ moduleName }) => {
         // TODO: implement module system
-        // if (moduleName === "io") {
-        //   graph.addNode(util.nodeIdForVar(moduleName, "stdout"), "core/Output");
-        //   // st.pushModule("io", {
-        //   //   stdout: { ins: [{ nodeId: stdoutNodeId, portName: "in" }], outs: [] }
-        //   // });
-        // } else {
         const moduleAst = parser.parseFile(`sslib/${moduleName}.ss`);
         const importedModuleNode = compileGraph(moduleAst, graph, moduleName, false);
-        graph.connectNodes(moduleNode, importedModuleNode);
+        graph.connectNodes(graphX.addModuleNode(), importedModuleNode);
         return importedModuleNode;
-        // }
       },
       FunDecl: ({ funName, funDef }) => {
+        // build(funDef);
+        // graph.addSubgraph(funName, )
+        // nodeSpec = build(funDef)
+        // st.recordSubgraph(funName, g)
         throw new Error("not implemented");
       },
       BinOp: ({ uuid, operator, lhs, rhs }) => {
@@ -98,20 +88,8 @@ function compileGraph(
       },
       Var: ({ moduleName, name }) => {
         return moduleName ?
-          graph.getNode(util.nodeIdForVar(moduleName, name)) :
-          graph.addNode(util.nodeIdForVar(moduleName, name), "core/Repeat");
-        // const nodeId = `__var_${moduleName ?? ""}_${name}`;
-        // let nodeInfo = st.getSymbol(moduleName, name);
-
-        // if (!nodeInfo) {
-        //   if (moduleName) {
-        //     throw new Error(`Module symbol not found: ${moduleName}.${name}`);
-        //   }
-        //   graph.addNode(nodeId, "core/Repeat");
-        //   nodeInfo = { ins: [{ nodeId, portName: "in" }], outs: [{ nodeId, portName: "out" }] };
-        //   st.pushSymbol(name, nodeInfo);
-        // }
-        // return nodeInfo;
+          graph.getNode(graphX.nodeIdForVar(moduleName, name)) :
+          graphX.addLocalVarNode(name);
       },
       Index: ({ uuid, coll, index }) => {
         const [collSpec, indexSpec] = [build(coll), build(index)];
@@ -120,7 +98,14 @@ function compileGraph(
         const node = graph.addNode(`Index_${uuid}`, "streamscript/Index");
         return graph.connectNodesMulti([collSpec, indexSpec], node);
       },
-      Lambda: ({ ins, outs, body }) => {
+      Lambda: ({ uuid, ins, outs, body }) => {
+        // const innerGraph = new Graph(graph.components);
+        // graphX.openScope(uuid);
+        // // g = new Graph()
+        // // st.pushVars(ins, outs)
+        // // g.addNode(ins, outs)
+        // body.forEach(build);
+        // graphX.closeScope();
         throw new Error("not implemented");
       },
       FunAppl: ({ func, args }) => {
@@ -136,7 +121,7 @@ function compileGraph(
         }
         return { ins, outs };
       },
-      Literal: ({ value }) => createNodeForConst(value),
+      Literal: ({ value }) => graphX.addConstNode(value),
       Array: ({ uuid, elems }) => {
         const elemSpecs = elems.map(build);
         return elemSpecs.reduce(
@@ -145,7 +130,7 @@ function compileGraph(
             const node = graph.addNode(`ArrayPush: #${uuid}_${elemIdx}`, "streamscript/ArrayPush");
             return graph.connectNodesMulti([arr, elem], node);
           },
-          createNodeForConst([])
+          graphX.addConstNode([])
         );
       },
       Object: ({ uuid, elems }) => {
@@ -159,7 +144,7 @@ function compileGraph(
             graph.connectPorts(obj.outs[0], node.ins[2]);
             return { ins: [], outs: node.outs };
           },
-          createNodeForConst({})
+          graphX.addConstNode({})
         );
       }
     });
