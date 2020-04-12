@@ -22,7 +22,7 @@ function astNode<T>(type: SSNodeType, data: T): { uuid: string, type: SSNodeType
 semantics.addAttribute("ast", { /* eslint-disable no-unused-vars, camelcase */
   Module: lift(stmts => astNode("Module", { stmts })),
   Import: lift((_, moduleName) => astNode("Import", { moduleName })),
-  FunDecl: lift((funName, body) => astNode("FunDecl", { funName, body })),
+  FunDecl: lift((funName, funDef) => astNode("FunDecl", { funName, funDef })),
   Expr_operator: lift((lhs, operator, rhs) => astNode("BinOp", { operator, lhs, rhs })),
   Expr1_operator: lift((lhs, operator, rhs) => astNode("BinOp", { operator, lhs, rhs })),
   Expr2_operator: lift((lhs, operator, rhs) => astNode("BinOp", { operator, lhs, rhs })),
@@ -37,11 +37,11 @@ semantics.addAttribute("ast", { /* eslint-disable no-unused-vars, camelcase */
     )),
 
   FunAppl: lift((func, _1, args, _2) => astNode("FunAppl", { func, args })),
-  Lambda_full: lift((_1, ins, _2, _3, out, _4, body, _5) => astNode(
+  Lambda_simple: lift((_1, ins, _2, _3, out, _4, body, _5) => astNode(
     "Lambda",
-    { ins, outs: out[0], body }
+    { ins, outs: [out[0]], body }
   )),
-  Lambda_simple: lift((_1, ins, _2, _3, _4, outs, _5, _6, body, _7) => astNode(
+  Lambda_full: lift((_1, ins, _2, _3, _4, outs, _5, _6, body, _7) => astNode(
     "Lambda",
     { ins, outs, body }
   )),

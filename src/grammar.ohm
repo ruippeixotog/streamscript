@@ -74,8 +74,8 @@ StreamStript {
     = VarAccess "(" ListOf<(wildcard | Expr), ","> ")"
 
   Lambda
-    = "(" ListOf<ident, ","> ")" "=>" ident? "{" Expr* "}"                        -- full
-    | "(" ListOf<ident, ","> ")" "=>" "(" ListOf<ident, ","> ")" "{" Expr* "}"    -- simple
+    = "(" ListOf<ident, ","> ")" "=>" ident? "{" Expr* "}"                        -- simple
+    | "(" ListOf<ident, ","> ")" "=>" "(" ListOf<ident, ","> ")" "{" Expr* "}"    -- full
 
   Tuple
     = "(" NonemptyListOf<Expr, ","> ")"
