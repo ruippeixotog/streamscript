@@ -29,7 +29,7 @@ export type SSNode =
   { uuid: string, type: 'UnOp', operator: string, arg: SSNode } |
   { uuid: string, type: 'Var', moduleName: string | null, name: string } |
   { uuid: string, type: 'Index', coll: SSNode, index: SSNode } |
-  { uuid: string, type: 'Lambda', ins: SSNode[], outs: SSNode[] | null, body: SSNode[] } |
+  { uuid: string, type: 'Lambda', ins: string[], outs: string[] | null, body: SSNode[] } |
   { uuid: string, type: 'FunAppl', func: SSNode, args: SSNode[] } |
   { uuid: string, type: 'Tuple', elems: SSNode[] } |
   { uuid: string, type: 'Literal', value: string | number | boolean | null } |
@@ -46,7 +46,7 @@ export type SSAction<T, U> = {
   UnOp: (x: { uuid: string, operator: string, arg: T }) => U,
   Var: (x: { uuid: string, moduleName: string | null, name: string }) => U,
   Index: (x: { uuid: string, coll: T, index: T }) => U,
-  Lambda: (x: { uuid: string, ins: T[], outs: T[] | null, body: T[] }) => U,
+  Lambda: (x: { uuid: string, ins: string[], outs: string[] | null, body: T[] }) => U,
   FunAppl: (x: { uuid: string, func: T, args: T[] }) => U,
   Tuple: (x: { uuid: string, elems: T[] }) => U,
   Literal: (x: { uuid: string, value: string | number | boolean | null }) => U,
@@ -64,11 +64,7 @@ function fold<T>(node: SSNode, fs: SSAction<T, T>): T {
     UnOp: v => fs['UnOp']({ ...v, arg: fold1(v.arg) }),
     Var: v => fs['Var'](v),
     Index: v => fs['Index']({ ...v, coll: fold1(v.coll), index: fold1(v.index) }),
-    Lambda: v => fs['Lambda']({...v,
-      ins: v.ins.map(fold1),
-      outs: v.outs ? v.outs.map(fold1) : null,
-      body: v.body.map(fold1)
-    }),
+    Lambda: v => fs['Lambda']({...v, body: v.body.map(fold1) }),
     FunAppl: v => fs['FunAppl']({ ...v, func: fold1(v.func), args: v.args.map(fold1) }),
     Tuple: v => fs['Tuple']({ ...v, elems: v.elems.map(fold1) }),
     Literal: v => fs['Literal'](v),
