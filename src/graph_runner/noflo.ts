@@ -37,7 +37,6 @@ function toNofloGraph(graph: Graph, loader: ComponentLoader): noflo.Graph {
 
   graph.subgraphs.forEach((subgraph, subgraphId) => {
     const nofloSubgraph = toNofloGraph(subgraph, loader);
-    console.log(nofloSubgraph.toJSON());
     loader.registerGraph("Graph", subgraphId, nofloSubgraph);
   });
   graph.nodes.forEach((nodeImpl, nodeId) => {
