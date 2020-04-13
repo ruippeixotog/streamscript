@@ -1,8 +1,9 @@
 import io
+import test
 
 io.stdout <- "Hello world!"
 
-x <- 40.5 + 1.5
+x <- 0.5 + 1.5
 io.stdout <- x
 
 io.stdout <- [1, 2, x]
@@ -26,3 +27,5 @@ sum(a, b) => out {
 }
 
 io.stdout <- sum(100, 10)
+io.stdout <- test.testSum(15, 20)
+io.stdout <- test.answerToEverything

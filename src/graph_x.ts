@@ -23,10 +23,10 @@ class GraphX {
     return { ins: [], outs: node.outs };
   }
 
-  addLocalVarNode(name: string, forceNew: boolean = false): NodeSpec {
+  addVarNode(moduleName: string | null, name: string, forceNew: boolean = false): NodeSpec {
     const currentScope = this.scopes[this.scopes.length - 1];
     currentScope.vars.add(name);
-    const node = this.graph().addNode(this.nodeIdForVar(null, name), "core/Repeat");
+    const node = this.graph().addNode(this.nodeIdForVar(moduleName, name), "core/Repeat");
 
     if (!forceNew) {
       for (let i = this.scopes.length - 2; i >= 0; i--) {
@@ -40,10 +40,11 @@ class GraphX {
     return node;
   }
 
-  addLocalFunctionNode(name: string, uuid: string): NodeSpec {
-    const nodeId = `Function: ${name} #${uuid}`;
-    const node = this.graph().addSubgraphNode(nodeId, name);
-    const subgraph = this.graph().getSubgraph(name);
+  addFunctionNode(moduleName: string | null, name: string, uuid: string): NodeSpec {
+    const fullName = this.fullVarName(moduleName, name);
+    const nodeId = `Function: ${fullName} #${uuid}`;
+    const node = this.graph().addSubgraphNode(nodeId, fullName);
+    const subgraph = this.graph().getSubgraph(fullName);
     subgraph.externalIns.filter(p => p.implicit).forEach(p => {
       this.graph().connectPorts(p.innerPort, { portName: p.portName, nodeId });
     });
@@ -53,12 +54,20 @@ class GraphX {
     return node;
   }
 
+  addExternNode(componentId: string, uuid: string): NodeSpec {
+    return this.graph().addNode(`Extern: ${componentId} #${uuid}`, componentId);
+  }
+
+  fullVarName(moduleName: string | null, name: string): string {
+    return (moduleName ? moduleName + "." : "") + name;
+  }
+
   nodeIdForConst(value: any): string {
     return `Const: ${JSON.stringify(value)}`;
   }
 
   nodeIdForVar(moduleName: string | null, name: string): string {
-    return `Var: ${moduleName ? moduleName + "." : ""}${name}`;
+    return `Var: ${this.fullVarName(moduleName, name)}`;
   }
 
   openScope(id: string): void {

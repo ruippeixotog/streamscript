@@ -23,7 +23,7 @@ if (process.argv.length > 2) {
 
   console.log(`compiling ${name}...`);
   const graph = new Graph(loader.loadComponents());
-  compiler.compileGraph(ast, graph, "main", true);
+  compiler.compileGraph(ast, graph);
   graph.print();
 
   console.log(`running ${name}...`);

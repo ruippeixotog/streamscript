@@ -1,3 +1,4 @@
+import assert from "assert";
 import { run } from "./ast";
 import Graph from "./graph";
 import util from "./graph_util";
@@ -9,13 +10,9 @@ import type { NodeSpec } from "./graph";
 function compileGraph(
   ast: SSNode,
   graph: Graph,
-  thisModuleName: string | null): NodeSpec {
+  thisModuleName: string | null = null): NodeSpec {
 
   const graphX = new GraphX(graph);
-
-  if (thisModuleName === "io") {
-    graphX.graph().addNode(graphX.nodeIdForVar(thisModuleName, "stdout"), "core/Output");
-  }
 
   function build(node: SSNode): NodeSpec {
     return run<NodeSpec>(node, {
@@ -24,7 +21,6 @@ function compileGraph(
         return { ins: [], outs: [] };
       },
       Import: ({ moduleName }) => {
-        // TODO: implement module system
         const moduleAst = parser.parseFile(`sslib/${moduleName}.ss`);
         compileGraph(moduleAst, graphX.graph(), moduleName);
         return { ins: [], outs: [] };
@@ -33,7 +29,7 @@ function compileGraph(
         build(funDef);
         // TODO: do this without renaming
         graphX.graph().addSubgraph(
-          funName,
+          graphX.fullVarName(thisModuleName, funName),
           graphX.graph().getSubgraph(`Lambda_${funDef.uuid}`)
         );
         return { ins: [], outs: [] };
@@ -80,7 +76,7 @@ function compileGraph(
       Var: ({ moduleName, name }) => {
         return moduleName ?
           graphX.graph().getNode(graphX.nodeIdForVar(moduleName, name)) :
-          graphX.addLocalVarNode(name);
+          graphX.addVarNode(thisModuleName, name);
       },
       Index: ({ uuid, coll, index }) => {
         const [collSpec, indexSpec] = [build(coll), build(index)];
@@ -95,12 +91,12 @@ function compileGraph(
         }
         graphX.openScope(uuid);
         ins.forEach(name =>
-          graphX.addLocalVarNode(name, true).ins.forEach(p =>
+          graphX.addVarNode(thisModuleName, name, true).ins.forEach(p =>
             graphX.graph().addExternalIn(name, p)
           )
         );
         outs.forEach(name =>
-          graphX.addLocalVarNode(name, true).outs.forEach(p =>
+          graphX.addVarNode(thisModuleName, name, true).outs.forEach(p =>
             graphX.graph().addExternalOut(name, p)
           )
         );
@@ -114,11 +110,15 @@ function compileGraph(
         if (func.type !== "Var") {
           throw new Error("Function application on non-variables is not implemented");
         }
-        if (func.moduleName) {
-          throw new Error("Function application on module functions is not implemented");
+        if (func.name === "extern") {
+          assert.equal(1, args.length, "`extern` should be called with a single argument");
+          assert.equal("Literal", args[0].type, "`extern` can only be called with a literal value");
+          assert(typeof (<any> args[0]).value === "string", "`extern` can only be called with a string");
+          return graphX.addExternNode((<any> args[0]).value, uuid);
         }
         const argNodes = args.map(build);
-        const node = graphX.addLocalFunctionNode(func.name, uuid);
+        console.log(func.moduleName ?? thisModuleName, func.name);
+        const node = graphX.addFunctionNode(func.moduleName ?? thisModuleName, func.name, uuid);
         return graphX.graph().connectNodesMulti(argNodes, node);
       },
       Tuple: ({ elems }) => {
