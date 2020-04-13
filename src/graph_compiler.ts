@@ -9,32 +9,25 @@ import type { NodeSpec } from "./graph";
 function compileGraph(
   ast: SSNode,
   graph: Graph,
-  rootModuleName: string | null,
-  isRoot: boolean): NodeSpec {
+  thisModuleName: string | null): NodeSpec {
 
-  const graphX = new GraphX(graph, rootModuleName ?? "__main");
+  const graphX = new GraphX(graph);
 
-  if (rootModuleName === "io") {
-    graphX.graph().addNode(graphX.nodeIdForVar(rootModuleName, "stdout"), "core/Output");
+  if (thisModuleName === "io") {
+    graphX.graph().addNode(graphX.nodeIdForVar(thisModuleName, "stdout"), "core/Output");
   }
 
   function build(node: SSNode): NodeSpec {
     return run<NodeSpec>(node, {
       Module: ({ stmts }) => {
-        const moduleNode = graphX.addModuleNode();
-        if (isRoot) {
-          // moduleNode.ins.forEach(p => graphX.graph().addExternalIn(p));
-          graphX.graph().setInitial(moduleNode.ins[0], {});
-        }
         stmts.forEach(build);
-        return moduleNode; // return graphX.graph().asNodeSpec();
+        return { ins: [], outs: [] };
       },
       Import: ({ moduleName }) => {
         // TODO: implement module system
         const moduleAst = parser.parseFile(`sslib/${moduleName}.ss`);
-        const importedModuleNode = compileGraph(moduleAst, graphX.graph(), moduleName, false);
-        graphX.graph().connectNodes(graphX.addModuleNode(), importedModuleNode);
-        return importedModuleNode;
+        compileGraph(moduleAst, graphX.graph(), moduleName);
+        return { ins: [], outs: [] };
       },
       FunDecl: ({ funName, funDef }) => {
         build(funDef);

@@ -7,11 +7,9 @@ type Scope = {
 }
 
 class GraphX {
-  moduleName: string;
   scopes: Scope[];
 
-  constructor(graph: Graph, moduleName: string) {
-    this.moduleName = moduleName;
+  constructor(graph: Graph) {
     this.scopes = [{ id: "", graph, vars: new Set() }];
   }
 
@@ -19,14 +17,9 @@ class GraphX {
     return this.scopes[this.scopes.length - 1].graph;
   }
 
-  addModuleNode(): NodeSpec {
-    return this.graph().addNode(this.nodeIdForModule(this.moduleName), "core/Repeat");
-  }
-
   addConstNode(value: any): NodeSpec {
-    const node = this.graph().addNode(this.nodeIdForConst(value), "core/Kick");
-    this.graph().connectPorts(this.addModuleNode().outs[0], node.ins[0]);
-    this.graph().setInitial(node.ins[1], value);
+    const node = this.graph().addNode(this.nodeIdForConst(value), "core/Repeat");
+    this.graph().setInitial(node.ins[0], value);
     return { ins: [], outs: node.outs };
   }
 
@@ -66,10 +59,6 @@ class GraphX {
 
   nodeIdForVar(moduleName: string | null, name: string): string {
     return `Var: ${moduleName ? moduleName + "." : ""}${name}`;
-  }
-
-  nodeIdForModule(name: string): string {
-    return `Module: ${name}`;
   }
 
   openScope(id: string): void {
