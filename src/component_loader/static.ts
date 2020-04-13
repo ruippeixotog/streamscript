@@ -24,8 +24,10 @@ const knownComponents: { [key: string]: ComponentSpec } = {
   "core/Kick": { ins: ["in", "data"], outs: ["out"] }
 };
 
-function loadComponents(): Map<string, ComponentSpec> {
-  return new Map(Object.entries(knownComponents));
+function loadComponents(): Promise<Map<string, ComponentSpec>> {
+  return new Promise(callback =>
+    callback(new Map(Object.entries(knownComponents)))
+  );
 }
 
 export default { loadComponents };

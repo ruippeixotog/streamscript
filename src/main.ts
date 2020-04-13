@@ -16,18 +16,24 @@ import Graph from "./graph";
 //   console.log(result.outPorts);
 // });
 
-if (process.argv.length > 2) {
-  const name = process.argv[2];
-  console.log(`parsing ${name}...`);
-  const ast = parser.parseFile(`sslib/examples/${name}`);
+async function runFile(filename: string): Promise<any> {
+  console.log(`parsing ${filename}...`);
+  const ast = parser.parseFile(filename);
 
-  console.log(`compiling ${name}...`);
-  const graph = new Graph(loader.loadComponents());
+  console.log(`compiling ${filename}...`);
+  const componentMap = await loader.loadComponents();
+
+  const graph = new Graph(componentMap);
   compiler.compileGraph(ast, graph);
   graph.print();
 
-  console.log(`running ${name}...`);
-  runner.runGraph(graph)
+  console.log(`running ${filename}...`);
+  await runner.runGraph(graph);
+}
+
+if (process.argv.length > 2) {
+  const filename = process.argv[2];
+  runFile(filename)
     .then(() => console.log("Finished."))
     .catch(err => console.error("ERROR:", err));
 
