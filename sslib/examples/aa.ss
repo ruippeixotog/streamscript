@@ -20,3 +20,9 @@ io.stdout <- {
   "f&t": false && true,
   "f&f": false && false
 }
+
+sum(a, b) => out {
+  out <- a + b
+}
+
+io.stdout <- sum(100, 10)

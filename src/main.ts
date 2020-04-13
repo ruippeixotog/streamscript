@@ -27,7 +27,9 @@ if (process.argv.length > 2) {
   graph.print();
 
   console.log(`running ${name}...`);
-  runner.runGraph(graph);
+  runner.runGraph(graph)
+    .then(() => console.log("Finished."))
+    .catch(err => console.error("ERROR:", err));
 
 } else {
   fs.readdir("sslib/examples", (_, files) => {

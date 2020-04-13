@@ -1,4 +1,3 @@
-import { Map } from "immutable";
 import type { ComponentSpec } from "../graph";
 
 const knownComponents: { [key: string]: ComponentSpec } = {
@@ -26,7 +25,7 @@ const knownComponents: { [key: string]: ComponentSpec } = {
 };
 
 function loadComponents(): Map<string, ComponentSpec> {
-  return Map(knownComponents);
+  return new Map(Object.entries(knownComponents));
 }
 
 export default { loadComponents };

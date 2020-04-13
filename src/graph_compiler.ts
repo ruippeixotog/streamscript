@@ -6,11 +6,6 @@ import parser from "./parser";
 import type { SSNode } from "./ast";
 import type { NodeSpec } from "./graph";
 
-export type SubgraphSpec = {
-  spec: NodeSpec,
-  impl: Graph
-}
-
 function compileGraph(
   ast: SSNode,
   graph: Graph,
@@ -20,7 +15,7 @@ function compileGraph(
   const graphX = new GraphX(graph, rootModuleName ?? "__main");
 
   if (rootModuleName === "io") {
-    graph.addNode(graphX.nodeIdForVar(rootModuleName, "stdout"), "core/Output");
+    graphX.graph().addNode(graphX.nodeIdForVar(rootModuleName, "stdout"), "core/Output");
   }
 
   function build(node: SSNode): NodeSpec {
@@ -28,24 +23,27 @@ function compileGraph(
       Module: ({ stmts }) => {
         const moduleNode = graphX.addModuleNode();
         if (isRoot) {
-          graph.setExternalIns(moduleNode.ins);
+          // moduleNode.ins.forEach(p => graphX.graph().addExternalIn(p));
+          graphX.graph().setInitial(moduleNode.ins[0], {});
         }
         stmts.forEach(build);
-        return moduleNode;
+        return moduleNode; // return graphX.graph().asNodeSpec();
       },
       Import: ({ moduleName }) => {
         // TODO: implement module system
         const moduleAst = parser.parseFile(`sslib/${moduleName}.ss`);
-        const importedModuleNode = compileGraph(moduleAst, graph, moduleName, false);
-        graph.connectNodes(graphX.addModuleNode(), importedModuleNode);
+        const importedModuleNode = compileGraph(moduleAst, graphX.graph(), moduleName, false);
+        graphX.graph().connectNodes(graphX.addModuleNode(), importedModuleNode);
         return importedModuleNode;
       },
       FunDecl: ({ funName, funDef }) => {
-        // build(funDef);
-        // graph.addSubgraph(funName, )
-        // nodeSpec = build(funDef)
-        // st.recordSubgraph(funName, g)
-        throw new Error("not implemented");
+        build(funDef);
+        // TODO: do this without renaming
+        graphX.graph().addSubgraph(
+          funName,
+          graphX.graph().getSubgraph(`Lambda_${funDef.uuid}`)
+        );
+        return { ins: [], outs: [] };
       },
       BinOp: ({ uuid, operator, lhs, rhs }) => {
         const [lhsSpec, rhsSpec] = [build(lhs), build(rhs)];
@@ -66,14 +64,14 @@ function compileGraph(
         };
 
         if (operator === "->") {
-          return graph.connectNodes(lhsSpec, rhsSpec, false);
+          return graphX.graph().connectNodes(lhsSpec, rhsSpec, false);
         }
         if (operator === "<-") {
-          return graph.connectNodes(rhsSpec, lhsSpec, false);
+          return graphX.graph().connectNodes(rhsSpec, lhsSpec, false);
         }
         const componentId = ops[operator];
         const nodeId = `${componentId.split("/")[1]}: #${uuid}`;
-        return graph.connectNodesBin(lhsSpec, rhsSpec, graph.addNode(nodeId, componentId));
+        return graphX.graph().connectNodesBin(lhsSpec, rhsSpec, graphX.graph().addNode(nodeId, componentId));
       },
       UnOp: ({ uuid, operator, arg }) => {
         const argSpec = build(arg);
@@ -84,32 +82,51 @@ function compileGraph(
 
         const componentId = ops[operator];
         const nodeId = `${componentId.split("/")[1]}_${uuid}`;
-        return graph.connectNodes(argSpec, graph.addNode(nodeId, componentId));
+        return graphX.graph().connectNodes(argSpec, graphX.graph().addNode(nodeId, componentId));
       },
       Var: ({ moduleName, name }) => {
         return moduleName ?
-          graph.getNode(graphX.nodeIdForVar(moduleName, name)) :
+          graphX.graph().getNode(graphX.nodeIdForVar(moduleName, name)) :
           graphX.addLocalVarNode(name);
       },
       Index: ({ uuid, coll, index }) => {
         const [collSpec, indexSpec] = [build(coll), build(index)];
         util.assertOutArity(1, collSpec);
         util.assertOutArity(1, indexSpec);
-        const node = graph.addNode(`Index_${uuid}`, "streamscript/Index");
-        return graph.connectNodesMulti([collSpec, indexSpec], node);
+        const node = graphX.graph().addNode(`Index_${uuid}`, "streamscript/Index");
+        return graphX.graph().connectNodesBin(collSpec, indexSpec, node);
       },
       Lambda: ({ uuid, ins, outs, body }) => {
-        // const innerGraph = new Graph(graph.components);
-        // graphX.openScope(uuid);
-        // // g = new Graph()
-        // // st.pushVars(ins, outs)
-        // // g.addNode(ins, outs)
-        // body.forEach(build);
-        // graphX.closeScope();
-        throw new Error("not implemented");
+        if (!outs) {
+          throw new Error("Short lambda form not supported currently");
+        }
+        graphX.openScope(uuid);
+        ins.forEach(name =>
+          graphX.addLocalVarNode(name, true).ins.forEach(p =>
+            graphX.graph().addExternalIn(name, p)
+          )
+        );
+        outs.forEach(name =>
+          graphX.addLocalVarNode(name, true).outs.forEach(p =>
+            graphX.graph().addExternalOut(name, p)
+          )
+        );
+        body.map(build);
+        const innerGraph = graphX.closeScope();
+        graphX.graph().addSubgraph(`Lambda_${uuid}`, innerGraph);
+
+        return { ins: [], outs: [] };
       },
-      FunAppl: ({ func, args }) => {
-        throw new Error("not implemented");
+      FunAppl: ({ uuid, func, args }) => {
+        if (func.type !== "Var") {
+          throw new Error("Function application on non-variables is not implemented");
+        }
+        if (func.moduleName) {
+          throw new Error("Function application on module functions is not implemented");
+        }
+        const argNodes = args.map(build);
+        const node = graphX.addLocalFunctionNode(func.name, uuid);
+        return graphX.graph().connectNodesMulti(argNodes, node);
       },
       Tuple: ({ elems }) => {
         const elemSpecs = elems.map(build);
@@ -127,8 +144,8 @@ function compileGraph(
         return elemSpecs.reduce(
           (arr, elem, elemIdx) => {
             util.assertOutArity(1, elem);
-            const node = graph.addNode(`ArrayPush: #${uuid}_${elemIdx}`, "streamscript/ArrayPush");
-            return graph.connectNodesMulti([arr, elem], node);
+            const node = graphX.graph().addNode(`ArrayPush: #${uuid}_${elemIdx}`, "streamscript/ArrayPush");
+            return graphX.graph().connectNodesBin(arr, elem, node);
           },
           graphX.addConstNode([])
         );
@@ -138,10 +155,10 @@ function compileGraph(
         return elemSpecs.reduce(
           (obj, [key, value], elemIdx) => {
             util.assertOutArity(1, value);
-            const node = graph.addNode(`SetPropertyValue: #${uuid}_${elemIdx}`, "objects/SetPropertyValue");
-            graph.setInitial(node.ins[0], key);
-            graph.connectPorts(value.outs[0], node.ins[1]);
-            graph.connectPorts(obj.outs[0], node.ins[2]);
+            const node = graphX.graph().addNode(`SetPropertyValue: #${uuid}_${elemIdx}`, "objects/SetPropertyValue");
+            graphX.graph().setInitial(node.ins[0], key);
+            graphX.graph().connectPorts(value.outs[0], node.ins[1]);
+            graphX.graph().connectPorts(obj.outs[0], node.ins[2]);
             return { ins: [], outs: node.outs };
           },
           graphX.addConstNode({})

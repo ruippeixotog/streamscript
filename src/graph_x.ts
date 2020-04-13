@@ -1,47 +1,71 @@
 import Graph, { NodeSpec } from "./graph";
 
+type Scope = {
+  id: string,
+  graph: Graph,
+  vars: Set<string>
+}
+
 class GraphX {
-  currentGraph: Graph;
   moduleName: string;
-  scopes: { id?: string, vars: Set<string> }[];
+  scopes: Scope[];
 
   constructor(graph: Graph, moduleName: string) {
-    this.currentGraph = graph;
     this.moduleName = moduleName;
-    this.scopes = [{ vars: new Set() }];
+    this.scopes = [{ id: "", graph, vars: new Set() }];
+  }
+
+  graph(): Graph {
+    return this.scopes[this.scopes.length - 1].graph;
   }
 
   addModuleNode(): NodeSpec {
-    return this.currentGraph.addNode(this.nodeIdForModule(this.moduleName), "core/Repeat");
+    return this.graph().addNode(this.nodeIdForModule(this.moduleName), "core/Repeat");
   }
 
   addConstNode(value: any): NodeSpec {
-    const node = this.currentGraph.addNode(this.nodeIdForConst(value), "core/Kick");
-    this.currentGraph.connectPorts(this.addModuleNode().outs[0], node.ins[0]);
-    this.currentGraph.setInitial(node.ins[1], value);
+    const node = this.graph().addNode(this.nodeIdForConst(value), "core/Kick");
+    this.graph().connectPorts(this.addModuleNode().outs[0], node.ins[0]);
+    this.graph().setInitial(node.ins[1], value);
     return { ins: [], outs: node.outs };
   }
 
-  addLocalVarNode(name: string): NodeSpec {
-    for (let i = this.scopes.length - 1; i >= 0; i--) {
-      if (this.scopes[i].vars.has(name)) {
-        return this.currentGraph.getNode(this.nodeIdForVar(null, name, this.scopes[i].id));
-      }
-    }
+  addLocalVarNode(name: string, forceNew: boolean = false): NodeSpec {
     const currentScope = this.scopes[this.scopes.length - 1];
     currentScope.vars.add(name);
-    return this.currentGraph.addNode(
-      this.nodeIdForVar(null, name, currentScope.id),
-      "core/Repeat"
-    );
+    const node = this.graph().addNode(this.nodeIdForVar(null, name), "core/Repeat");
+
+    if (!forceNew) {
+      for (let i = this.scopes.length - 2; i >= 0; i--) {
+        if (this.scopes[i].vars.has(name)) {
+          node.ins.forEach(p => this.graph().addExternalIn(name, p, true));
+          node.outs.forEach(p => this.graph().addExternalOut(name, p, true));
+          break;
+        }
+      }
+    }
+    return node;
+  }
+
+  addLocalFunctionNode(name: string, uuid: string): NodeSpec {
+    const nodeId = `Function: ${name} #${uuid}`;
+    const node = this.graph().addSubgraphNode(nodeId, name);
+    const subgraph = this.graph().getSubgraph(name);
+    subgraph.externalIns.filter(p => p.implicit).forEach(p => {
+      this.graph().connectPorts(p.innerPort, { portName: p.portName, nodeId });
+    });
+    subgraph.externalOuts.filter(p => p.implicit).forEach(p => {
+      this.graph().connectPorts({ portName: p.portName, nodeId }, p.innerPort);
+    });
+    return node;
   }
 
   nodeIdForConst(value: any): string {
     return `Const: ${JSON.stringify(value)}`;
   }
 
-  nodeIdForVar(moduleName: string | null, name: string, scopeId?: string): string {
-    return `Var: ${moduleName ? moduleName + "." : ""}${name}${scopeId ? "_" + scopeId : ""}`;
+  nodeIdForVar(moduleName: string | null, name: string): string {
+    return `Var: ${moduleName ? moduleName + "." : ""}${name}`;
   }
 
   nodeIdForModule(name: string): string {
@@ -49,11 +73,19 @@ class GraphX {
   }
 
   openScope(id: string): void {
-    this.scopes.push({ id, vars: new Set() });
+    this.scopes.push({
+      id,
+      graph: new Graph(this.graph().components),
+      vars: new Set()
+    });
   }
 
-  closeScope(): void {
-    this.scopes.pop();
+  closeScope(): Graph {
+    const scope = this.scopes.pop();
+    if (!scope) {
+      throw new Error("Tried to pop root scope");
+    }
+    return scope.graph;
   }
 }
 
