@@ -1,5 +1,6 @@
 import util from "./graph_util";
-import { Set, Map } from "immutable";
+import DeepMap from "./util/DeepMap";
+import DeepSet from "./util/DeepSet";
 
 export type InPort = { nodeId: string, portName: string };
 export type OutPort = { nodeId: string, portName: string };
@@ -25,10 +26,10 @@ class Graph {
 
   constructor(components: Map<string, ComponentSpec>) {
     this.components = components;
-    this.nodes = Map();
-    this.edges = Set();
-    this.initials = Map();
-    this.subgraphs = Map();
+    this.nodes = new Map();
+    this.edges = new DeepSet();
+    this.initials = new DeepMap();
+    this.subgraphs = new Map();
     this.externalIns = [];
     this.externalOuts = [];
   }
@@ -38,7 +39,7 @@ class Graph {
     if (!component) {
       throw new Error(`Unknown component: ${componentId}`);
     }
-    this.nodes = this.nodes.set(nodeId, componentId);
+    this.nodes.set(nodeId, componentId);
     return this.getNode(nodeId);
   }
 
@@ -58,11 +59,11 @@ class Graph {
   }
 
   setInitial(port: InPort, value: any): void {
-    this.initials = this.initials.set(port, value);
+    this.initials.set(port, value);
   }
 
   connectPorts(from: InPort, to: OutPort): void {
-    this.edges = this.edges.add([from, to]);
+    this.edges.add([from, to]);
   }
 
   connectNodes(from: NodeSpec, to: NodeSpec, closeIns: boolean = true): NodeSpec {
@@ -94,7 +95,7 @@ class Graph {
   }
 
   addSubgraph(subgraphId: string, subgraph: Graph): void {
-    this.subgraphs = this.subgraphs.set(subgraphId, subgraph);
+    this.subgraphs.set(subgraphId, subgraph);
   }
 
   setExternalIns(ins: InPort[]): void {
