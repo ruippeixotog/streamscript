@@ -1,7 +1,7 @@
 import fs from "fs";
 
 import parser from "./parser";
-import loader from "./component_loader/static";
+import loader from "./component_loader/noflo";
 import runner from "./graph_runner/noflo";
 import compiler from "./graph_compiler";
 import Graph from "./graph";
