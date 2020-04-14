@@ -6,16 +6,6 @@ import runner from "./graph_runner/noflo";
 import compiler from "./graph_compiler";
 import Graph from "./graph";
 
-// const loader = new noflo.ComponentLoader(".");
-// loader.listComponents((err, result) => {
-//   console.log(result);
-// });
-// loader.load("streamscript/And", (err, result) => {
-//   console.log(result.description);
-//   console.log(result.inPorts);
-//   console.log(result.outPorts);
-// });
-
 async function runFile(filename: string): Promise<any> {
   console.log(`parsing ${filename}...`);
   const ast = parser.parseFile(filename);
@@ -25,7 +15,7 @@ async function runFile(filename: string): Promise<any> {
 
   const graph = new Graph(componentMap);
   compiler.compileGraph(ast, graph);
-  graph.print();
+  // graph.print();
 
   console.log(`running ${filename}...`);
   await runner.runGraph(graph);

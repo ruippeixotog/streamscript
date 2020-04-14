@@ -69,18 +69,15 @@ semantics.addAttribute("ast", { /* eslint-disable no-unused-vars, camelcase */
   _terminal: function () { return this.primitiveValue; }
 });
 
-import util from "util";
+// import util from "util";
 
 function parse(moduleContent: string): SSNode {
   const match = grammar.match(moduleContent);
   if (match.failed()) {
     console.error(match.message);
-    // console.log("");
-    // console.log("Trace:");
-    // console.log(grammar.trace(prog).toString());
     throw new Error("Unable to parse module");
   }
-  console.log(util.inspect(semantics(match).ast, { showHidden: false, depth: null }));
+  // console.log(util.inspect(semantics(match).ast, { showHidden: false, depth: null }));
   return semantics(match).ast;
 }
 
