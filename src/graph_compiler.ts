@@ -5,7 +5,7 @@ import util from "./graph_util";
 import GraphX from "./graph_x";
 import parser from "./parser";
 import type { SSNode } from "./ast";
-import type { NodeSpec } from "./graph";
+import type { InPort, NodeSpec } from "./graph";
 
 function compileGraph(
   ast: SSNode,
@@ -112,14 +112,24 @@ function compileGraph(
         }
         if (func.name === "extern") {
           assert.equal(1, args.length, "`extern` should be called with a single argument");
-          assert.equal("Literal", args[0].type, "`extern` can only be called with a literal value");
-          assert(typeof (<any> args[0]).value === "string", "`extern` can only be called with a string");
+          assert.equal("string", typeof (<any> args[0]).value, "`extern` can only be called with a literal string");
           return graphX.addExternNode((<any> args[0]).value, uuid);
         }
-        const argNodes = args.map(build);
-        console.log(func.moduleName ?? thisModuleName, func.name);
         const node = graphX.addFunctionNode(func.moduleName ?? thisModuleName, func.name, uuid);
-        return graphX.graph().connectNodesMulti(argNodes, node);
+        util.assertInArity(args.length, node);
+
+        const openIns = args.reduce<InPort[]>((ins, arg, i) => {
+          if (arg === '_') {
+            return ins.concat(node.ins[i]);
+          } else {
+            const argNode = build(arg);
+            util.assertOutArity(1, argNode);
+            graphX.graph().connectPorts(argNode.outs[0], node.ins[i]);
+            return ins;
+          }
+        }, []);
+
+        return { ins: openIns, outs: node.outs };
       },
       Tuple: ({ elems }) => {
         const elemSpecs = elems.map(build);
