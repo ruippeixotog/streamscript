@@ -30,11 +30,13 @@ export type SSNode =
   { uuid: string, type: 'Var', moduleName: string | null, name: string } |
   { uuid: string, type: 'Index', coll: SSNode, index: SSNode } |
   { uuid: string, type: 'Lambda', ins: string[], outs: string[] | null, body: SSNode[] } |
-  { uuid: string, type: 'FunAppl', func: SSNode, args: (SSNode | '_')[] } |
+  { uuid: string, type: 'FunAppl', func: SSNode, args: SSNode[] } |
   { uuid: string, type: 'Tuple', elems: SSNode[] } |
   { uuid: string, type: 'Literal', value: string | number | boolean | null } |
   { uuid: string, type: 'Array', elems: SSNode[] } |
-  { uuid: string, type: 'Object', elems: [string, SSNode][] };
+  { uuid: string, type: 'Object', elems: [string, SSNode][] } |
+  { uuid: string, type: 'Wildcard' } |
+  { uuid: string, type: 'Void' };
 
 export type SSNodeType = SSNode['type']; // $PropertyType<SSNode, 'type'>;
 
@@ -47,11 +49,13 @@ export type SSAction<T, U> = {
   Var: (x: { uuid: string, moduleName: string | null, name: string }) => U,
   Index: (x: { uuid: string, coll: T, index: T }) => U,
   Lambda: (x: { uuid: string, ins: string[], outs: string[] | null, body: T[] }) => U,
-  FunAppl: (x: { uuid: string, func: T, args: (T | '_')[] }) => U,
+  FunAppl: (x: { uuid: string, func: T, args: T[] }) => U,
   Tuple: (x: { uuid: string, elems: T[] }) => U,
   Literal: (x: { uuid: string, value: string | number | boolean | null }) => U,
   Array: (x: { uuid: string, elems: T[] }) => U,
-  Object: (x: { uuid: string, elems: [string, T][] }) => U
+  Object: (x: { uuid: string, elems: [string, T][] }) => U,
+  Wildcard: (x: { uuid: string }) => U,
+  Void: (x: { uuid: string }) => U
 };
 
 function fold<T>(node: SSNode, fs: SSAction<T, T>): T {
@@ -69,7 +73,9 @@ function fold<T>(node: SSNode, fs: SSAction<T, T>): T {
     Tuple: v => fs['Tuple']({ ...v, elems: v.elems.map(fold1) }),
     Literal: v => fs['Literal'](v),
     Array: v => fs['Array']({ ...v, elems: v.elems.map(fold1) }),
-    Object: v => fs['Object']({ ...v, elems: v.elems.map(([k, v]) => [k, fold1(v)]) })
+    Object: v => fs['Object']({ ...v, elems: v.elems.map(([k, v]) => [k, fold1(v)]) }),
+    Wildcard: v => fs['Wildcard'](v),
+    Void: v => fs['Void'](v),
   });
 }
 
@@ -92,7 +98,9 @@ function render(node: SSNode): string {
     Tuple: ({ elems }) => `(${elems.join(",")})`,
     Literal: ({ value }) => JSON.stringify(value),
     Array: ({ elems }) => `[${elems.join(",")}]`,
-    Object: ({ elems }) => `{${elems.map(([k, v]) => `"${k}": ${v}`).join(",")}}`
+    Object: ({ elems }) => `{${elems.map(([k, v]) => `"${k}": ${v}`).join(",")}}`,
+    Wildcard: () => '_',
+    Void: () => 'void'
   });
 }
 

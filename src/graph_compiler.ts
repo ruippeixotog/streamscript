@@ -119,7 +119,7 @@ function compileGraph(
         util.assertInArity(args.length, node);
 
         const openIns = args.reduce<InPort[]>((ins, arg, i) => {
-          if (arg === '_') {
+          if (arg.type === 'Wildcard') {
             return ins.concat(node.ins[i]);
           } else {
             const argNode = build(arg);
@@ -166,6 +166,13 @@ function compileGraph(
           },
           graphX.addConstNode({})
         );
+      },
+      Wildcard: () => {
+        // return placeholder
+        return { ins: [], outs: [] };
+      },
+      Void: () => {
+        return graphX.graph().getVoidNode();
       }
     });
   }

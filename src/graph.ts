@@ -40,6 +40,8 @@ class Graph {
   externalIns: ExternalInPort[];
   externalOuts: ExternalOutPort[];
 
+  static VOID_NODE: string = "void";
+
   constructor(components: Map<string, ComponentSpec>) {
     this.components = components;
     this.nodes = new Map();
@@ -69,6 +71,9 @@ class Graph {
   }
 
   getNode(nodeId: string): NodeSpec {
+    if (nodeId === Graph.VOID_NODE) {
+      return this.getVoidNode();
+    }
     const nodeImpl = this.nodes.get(nodeId);
     if (!nodeImpl) {
       throw new Error(`Unknown node: ${nodeId}`);
@@ -96,7 +101,9 @@ class Graph {
   }
 
   connectPorts(from: InPort, to: OutPort): void {
-    this.edges.add([from, to]);
+    if (from.nodeId !== Graph.VOID_NODE && to.nodeId !== Graph.VOID_NODE) {
+      this.edges.add([from, to]);
+    }
   }
 
   connectNodes(from: NodeSpec, to: NodeSpec, closeIns: boolean = true): NodeSpec {
@@ -159,6 +166,13 @@ class Graph {
         .map(p => ({ portName: p.portName, nodeId })),
       outs: this.externalOuts.filter(p => !p.implicit)
         .map(p => ({ portName: p.portName, nodeId }))
+    };
+  }
+
+  getVoidNode(): NodeSpec {
+    return {
+      ins: [{ nodeId: Graph.VOID_NODE, portName: "in" }],
+      outs: [{ nodeId: Graph.VOID_NODE, portName: "out" }]
     };
   }
 

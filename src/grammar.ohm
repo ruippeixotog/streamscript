@@ -66,12 +66,13 @@ StreamStript {
     | Literal
     | Array
     | Object
+    | Void
 
   VarAccess
     = (ident ".")? ident ("[" Expr "]")*
 
   FunAppl
-    = VarAccess "(" ListOf<(wildcard | Expr), ","> ")"
+    = VarAccess "(" ListOf<(Wildcard | Expr), ","> ")"
 
   Lambda
     = "(" ListOf<ident, ","> ")" "=>" ident? "{" Expr* "}"                        -- simple
@@ -94,6 +95,12 @@ StreamStript {
 
   ObjectPair
     = string ":" Expr
+
+  Wildcard
+    = "_"
+
+  Void
+    = "void"
 
 
   /**********
@@ -153,11 +160,8 @@ StreamStript {
   unOp         (a unary operator)
     = ~binOpP1 ("-" | "!")
 
-  wildcard
-    = "_"
-
   keyword
-    = ("import" | "true" | "false" | "null") ~alnum
+    = ("import" | "true" | "false" | "null" | "void") ~alnum
 
   space += comment
   comment

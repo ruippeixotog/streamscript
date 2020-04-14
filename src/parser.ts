@@ -52,6 +52,8 @@ semantics.addAttribute("ast", { /* eslint-disable no-unused-vars, camelcase */
   Array: lift((_1, elems, _2) => astNode("Array", { elems })),
   Object: lift((_1, elems, _2) => astNode("Object", { elems })),
   ObjectPair: lift((k, _, v) => [k, v]),
+  Wildcard: _ => astNode("Wildcard", {}),
+  Void: _ => astNode("Void", {}),
 
   EmptyListOf: () => [],
   NonemptyListOf: lift((first, _, rest) => [first, ...rest]),
