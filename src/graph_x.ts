@@ -43,7 +43,19 @@ class GraphX {
   addFunctionNode(moduleName: string | null, name: string, uuid: string): NodeSpec {
     const fullName = this.fullVarName(moduleName, name);
     const nodeId = `Function: ${fullName} #${uuid}`;
-    const node = this.graph().addSubgraphNode(nodeId, fullName);
+    let node: NodeSpec | null = null;
+    for (let i = this.scopes.length - 1; i >= 0; i--) {
+      const subgraphOpt = this.scopes[i].graph.subgraphs.get(fullName);
+      if (subgraphOpt) {
+        if (i !== this.scopes.length - 1) {
+          this.graph().addSubgraph(fullName, subgraphOpt);
+        }
+        node = this.graph().addSubgraphNode(nodeId, fullName);
+      }
+    }
+    if (node === null) {
+      throw new Error(`Unknown subgraph: ${fullName}`);
+    }
     const subgraph = this.graph().getSubgraph(fullName);
     subgraph.externalIns.filter(p => p.implicit).forEach(p => {
       this.graph().connectPorts(p.innerPort, { portName: p.portName, nodeId });
