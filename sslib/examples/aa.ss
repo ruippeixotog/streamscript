@@ -1,4 +1,3 @@
-import core
 import io
 import test
 
@@ -30,5 +29,3 @@ sum(a, b) => out {
 io.stdout <- sum(100, 10)
 io.stdout <- test.testSum(15, 20)
 io.stdout <- test.answerToEverything
-
-io.stdout <- core.kick(_, 42) <- core.timer(0, 1000)
