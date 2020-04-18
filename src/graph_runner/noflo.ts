@@ -60,20 +60,16 @@ function toNofloGraph(graph: Graph, loader: ComponentLoader): noflo.Graph {
   return nofloGraph;
 }
 
-function runGraph(graph: Graph): Promise<any> {
+async function runGraph(graph: Graph): Promise<any> {
   const loader = new ComponentLoader(".");
+  await util.promisify(loader.listComponents.bind(loader))();
 
-  return util.promisify(loader.listComponents.bind(loader))().then(componentMap => {
-    // console.log(componentMap);
-    const nofloGraph = toNofloGraph(graph, loader);
+  const nofloGraph = toNofloGraph(graph, loader);
 
-    nofloGraph.save("graph", () => {});
-    fs.writeFile("graph.dot", nofloGraph.toDOT(), () => {});
+  nofloGraph.save("graph", () => {});
+  fs.writeFile("graph.dot", nofloGraph.toDOT(), () => {});
 
-    const wrappedGraph = asCallback(nofloGraph, loader);
-    return util.promisify(wrappedGraph)();
-    // return startNetwork(nofloGraph, loader);
-  });
+  await util.promisify(asCallback(nofloGraph, loader))();
 }
 
 export default { runGraph };
