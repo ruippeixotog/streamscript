@@ -1,14 +1,10 @@
 import util from "./graph_util";
 import DeepMap from "./util/DeepMap";
 import DeepSet from "./util/DeepSet";
+import {ComponentSpec, ComponentStore} from "./types";
 
 export type InPort = { nodeId: string, portName: string };
 export type OutPort = { nodeId: string, portName: string };
-
-export type ComponentSpec = {
-  ins: string[],
-  outs: string[],
-};
 
 export type NodeImpl =
   { componentId: string } |
@@ -32,9 +28,9 @@ export type ExternalOutPort = {
 };
 
 class Graph {
-  components: Map<string, ComponentSpec>;
+  componentStore: ComponentStore<any>;
   nodes: Map<string, NodeImpl>;
-  edges: Set<[InPort, OutPort]>;
+  edges: Set<[OutPort, InPort]>;
   initials: Map<InPort, any>;
   subgraphs: Map<string, Graph>;
   externalIns: ExternalInPort[];
@@ -42,8 +38,8 @@ class Graph {
 
   static VOID_NODE: string = "void";
 
-  constructor(components: Map<string, ComponentSpec>) {
-    this.components = components;
+  constructor(componentStore: ComponentStore<any>) {
+    this.componentStore = componentStore;
     this.nodes = new Map();
     this.edges = new DeepSet();
     this.initials = new DeepMap();
@@ -53,7 +49,7 @@ class Graph {
   }
 
   addNode(nodeId: string, componentId: string): NodeSpec {
-    const component = this.components.get(componentId);
+    const component = this.componentStore.components[componentId];
     if (!component) {
       throw new Error(`Unknown component: ${componentId}`);
     }
@@ -79,13 +75,13 @@ class Graph {
       throw new Error(`Unknown node: ${nodeId}`);
     }
     if ("componentId" in nodeImpl) {
-      const component = this.components.get(nodeImpl.componentId);
+      const component = this.componentStore.components[nodeImpl.componentId];
       if (!component) {
         throw new Error(`Unknown component: ${nodeImpl.componentId}`);
       }
       return {
-        ins: component.ins.map(portName => ({ nodeId, portName })),
-        outs: component.outs.map(portName => ({ nodeId, portName }))
+        ins: component.spec.ins.map(portName => ({ nodeId, portName })),
+        outs: component.spec.outs.map(portName => ({ nodeId, portName }))
       };
     } else {
       const subgraph = this.subgraphs.get(nodeImpl.subgraphId);
@@ -100,7 +96,7 @@ class Graph {
     this.initials.set(port, value);
   }
 
-  connectPorts(from: InPort, to: OutPort): void {
+  connectPorts(from: OutPort, to: InPort): void {
     if (from.nodeId !== Graph.VOID_NODE && to.nodeId !== Graph.VOID_NODE) {
       this.edges.add([from, to]);
     }

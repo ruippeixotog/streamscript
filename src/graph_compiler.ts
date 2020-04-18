@@ -36,40 +36,20 @@ function compileGraph(
       },
       BinOp: ({ uuid, operator, lhs, rhs }) => {
         const [lhsSpec, rhsSpec] = [build(lhs), build(rhs)];
-        const ops: { [key: string]: string } = {
-          "||": "streamscript/Or",
-          "&&": "streamscript/And",
-          "<=": "streamscript/Lte",
-          "<": "streamscript/Lt",
-          "==": "streamscript/Eq",
-          "!=": "streamscript/Neq",
-          ">=": "streamscript/Gte",
-          ">": "streamscript/Gt",
-          "+": "math/Add",
-          "-": "math/Subtract",
-          "*": "math/Multiply",
-          "/": "math/Divide",
-          "%": "math/Modulo"
-        };
-
         if (operator === "->") {
           return graphX.graph().connectNodes(lhsSpec, rhsSpec, false);
         }
         if (operator === "<-") {
           return graphX.graph().connectNodes(rhsSpec, lhsSpec, false);
         }
-        const componentId = ops[operator];
+        const componentId = graphX.graph().componentStore.specials.binOps[operator];
         const nodeId = `${componentId.split("/")[1]}: #${uuid}`;
         return graphX.graph().connectNodesBin(lhsSpec, rhsSpec, graphX.graph().addNode(nodeId, componentId));
       },
       UnOp: ({ uuid, operator, arg }) => {
         const argSpec = build(arg);
-        const ops: { [key: string]: string } = {
-          "-": "streamscript/Negate",
-          "!": "streamscript/Not"
-        };
 
-        const componentId = ops[operator];
+        const componentId = graphX.graph().componentStore.specials.unOps[operator];
         const nodeId = `${componentId.split("/")[1]}_${uuid}`;
         return graphX.graph().connectNodes(argSpec, graphX.graph().addNode(nodeId, componentId));
       },
@@ -147,7 +127,8 @@ function compileGraph(
         return elemSpecs.reduce(
           (arr, elem, elemIdx) => {
             util.assertOutArity(1, elem);
-            const node = graphX.graph().addNode(`ArrayPush: #${uuid}_${elemIdx}`, "streamscript/ArrayPush");
+            const componentId = graphX.graph().componentStore.specials.arrayPush;
+            const node = graphX.graph().addNode(`ArrayPush: #${uuid}_${elemIdx}`, componentId);
             return graphX.graph().connectNodesBin(arr, elem, node);
           },
           graphX.addConstNode([])
@@ -158,7 +139,8 @@ function compileGraph(
         return elemSpecs.reduce(
           (obj, [key, value], elemIdx) => {
             util.assertOutArity(1, value);
-            const node = graphX.graph().addNode(`SetPropertyValue: #${uuid}_${elemIdx}`, "objects/SetPropertyValue");
+            const componentId = graphX.graph().componentStore.specials.objectSet;
+            const node = graphX.graph().addNode(`SetPropertyValue: #${uuid}_${elemIdx}`, componentId);
             graphX.graph().setInitial(node.ins[0], key);
             graphX.graph().connectPorts(value.outs[0], node.ins[1]);
             graphX.graph().connectPorts(obj.outs[0], node.ins[2]);

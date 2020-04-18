@@ -11,9 +11,9 @@ async function runFile(filename: string): Promise<any> {
   const ast = parser.parseFile(filename);
 
   console.log(`compiling ${filename}...`);
-  const componentMap = await loader.loadComponents();
+  const componentStore = await loader.loadComponents();
 
-  const graph = new Graph(componentMap);
+  const graph = new Graph(componentStore);
   compiler.compileGraph(ast, graph);
   // graph.print();
 

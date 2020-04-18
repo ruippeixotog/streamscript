@@ -18,7 +18,10 @@ class GraphX {
   }
 
   addConstNode(value: any): NodeSpec {
-    const node = this.graph().addNode(this.nodeIdForConst(value), "core/Repeat");
+    const node = this.graph().addNode(
+      this.nodeIdForConst(value),
+      this.graph().componentStore.specials.identity
+    );
     this.graph().setInitial(node.ins[0], value);
     return { ins: [], outs: node.outs };
   }
@@ -26,7 +29,10 @@ class GraphX {
   addVarNode(moduleName: string | null, name: string, forceNew: boolean = false): NodeSpec {
     const currentScope = this.scopes[this.scopes.length - 1];
     currentScope.vars.add(name);
-    const node = this.graph().addNode(this.nodeIdForVar(moduleName, name), "core/Repeat");
+    const node = this.graph().addNode(
+      this.nodeIdForVar(moduleName, name),
+      this.graph().componentStore.specials.identity
+    );
 
     if (!forceNew) {
       for (let i = this.scopes.length - 2; i >= 0; i--) {
@@ -85,7 +91,7 @@ class GraphX {
   openScope(id: string): void {
     this.scopes.push({
       id,
-      graph: new Graph(this.graph().components),
+      graph: new Graph(this.graph().componentStore),
       vars: new Set()
     });
   }

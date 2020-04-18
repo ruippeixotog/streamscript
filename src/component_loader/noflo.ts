@@ -1,6 +1,32 @@
-import type { ComponentSpec } from "../graph";
 import { ComponentLoader, Component } from "noflo";
 import util from "util";
+import { ComponentDef, ComponentStore } from "../types";
+
+const identity = "core/Repeat";
+
+const binOps = {
+  "||": "streamscript/Or",
+  "&&": "streamscript/And",
+  "<=": "streamscript/Lte",
+  "<": "streamscript/Lt",
+  "==": "streamscript/Eq",
+  "!=": "streamscript/Neq",
+  ">=": "streamscript/Gte",
+  ">": "streamscript/Gt",
+  "+": "math/Add",
+  "-": "math/Subtract",
+  "*": "math/Multiply",
+  "/": "math/Divide",
+  "%": "math/Modulo"
+};
+
+const unOps = {
+  "-": "streamscript/Negate",
+  "!": "streamscript/Not"
+};
+
+const arrayPush = "streamscript/ArrayPush";
+const objectSet = "objects/SetPropertyValue";
 
 const overrideIns = {
   "core/Output": ["in"]
@@ -8,7 +34,7 @@ const overrideIns = {
 
 const overrideOuts = {};
 
-async function loadComponents(): Promise<Map<string, ComponentSpec>> {
+async function loadComponents(): Promise<ComponentStore<Component>> {
   const loader = new ComponentLoader(".");
 
   // promisified NoFlo operations
@@ -20,14 +46,20 @@ async function loadComponents(): Promise<Map<string, ComponentSpec>> {
     componentIds.map(id => loadComponent(id).then(comp => [id, comp]))
   );
 
-  const componentSpecs: [string, ComponentSpec][] = components.map(([id, c]) =>
+  const componentSpecs: [string, ComponentDef<Component>][] = components.map(([id, c]) =>
     [id, {
-      ins: id in overrideIns ? overrideIns[id] : Object.keys(c.inPorts.ports),
-      outs: id in overrideOuts ? overrideOuts[id] : Object.keys(c.outPorts.ports)
+      spec: {
+        ins: id in overrideIns ? overrideIns[id] : Object.keys(c.inPorts.ports),
+        outs: id in overrideOuts ? overrideOuts[id] : Object.keys(c.outPorts.ports)
+      },
+      impl: c
     }]
   );
 
-  return new Map(componentSpecs);
+  return {
+    components: Object.fromEntries(componentSpecs),
+    specials: { identity, binOps, unOps, arrayPush, objectSet }
+  };
 }
 
 export default { loadComponents };
