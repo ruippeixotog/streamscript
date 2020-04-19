@@ -65,9 +65,7 @@ async function runGraph(graph: Graph): Promise<any> {
   await util.promisify(loader.listComponents.bind(loader))();
 
   const nofloGraph = toNofloGraph(graph, loader);
-
   nofloGraph.save("graph", () => {});
-  fs.writeFile("graph.dot", nofloGraph.toDOT(), () => {});
 
   await util.promisify(asCallback(nofloGraph, loader))();
 }

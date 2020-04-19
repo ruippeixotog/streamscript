@@ -4,6 +4,7 @@ import parser from "./parser";
 import loader from "./component_loader/noflo";
 import runner from "./graph_runner/noflo";
 import compiler from "./graph_compiler";
+import printer from "./graph_printer";
 import Graph from "./graph";
 
 async function runFile(filename: string): Promise<any> {
@@ -15,7 +16,9 @@ async function runFile(filename: string): Promise<any> {
 
   const graph = new Graph(componentStore);
   compiler.compileGraph(ast, graph);
-  // graph.print();
+
+  fs.writeFile("graph.dot", printer.toDOT(graph), () => {});
+  printer.toPNG(graph, "graph.png");
 
   console.log(`running ${filename}...`);
   await runner.runGraph(graph);

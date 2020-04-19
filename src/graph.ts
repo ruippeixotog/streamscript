@@ -1,7 +1,7 @@
 import util from "./graph_util";
 import DeepMap from "./util/DeepMap";
 import DeepSet from "./util/DeepSet";
-import {ComponentSpec, ComponentStore} from "./types";
+import { ComponentStore } from "./types";
 
 export type InPort = { nodeId: string, portName: string };
 export type OutPort = { nodeId: string, portName: string };
@@ -170,21 +170,6 @@ class Graph {
       ins: [{ nodeId: Graph.VOID_NODE, portName: "in" }],
       outs: [{ nodeId: Graph.VOID_NODE, portName: "out" }]
     };
-  }
-
-  print() {
-    console.log("Nodes:");
-    this.nodes.forEach((v, k) => console.log(k, "->", v));
-    console.log("Edges:");
-    this.edges.forEach(v => console.log(v));
-    console.log("Initials:");
-    this.initials.forEach((v, k) => console.log(k, "<-", v));
-    console.log("Subgraphs:");
-    this.subgraphs.forEach((v, k) => console.log(k));
-    console.log("External inputs:");
-    this.externalIns.forEach(v => console.log(v));
-    console.log("External outputs:");
-    this.externalOuts.forEach(v => console.log(v));
   }
 }
 
