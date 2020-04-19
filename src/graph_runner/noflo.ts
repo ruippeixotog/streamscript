@@ -65,7 +65,7 @@ async function runGraph(graph: Graph): Promise<any> {
   await util.promisify(loader.listComponents.bind(loader))();
 
   const nofloGraph = toNofloGraph(graph, loader);
-  nofloGraph.save("graph", () => {});
+  nofloGraph.save("out/graph", () => {});
 
   await util.promisify(asCallback(nofloGraph, loader))();
 }

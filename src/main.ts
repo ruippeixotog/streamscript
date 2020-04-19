@@ -17,8 +17,8 @@ async function runFile(filename: string): Promise<any> {
   const graph = new Graph(componentStore);
   compiler.compileGraph(ast, graph);
 
-  fs.writeFile("graph.dot", printer.toDOT(graph), () => {});
-  printer.toPNG(graph, "graph.png");
+  fs.writeFile("out/graph.dot", printer.toDOT(graph), () => {});
+  printer.toPNG(graph, "out/graph.png");
 
   console.log(`running ${filename}...`);
   await runner.runGraph(graph);
