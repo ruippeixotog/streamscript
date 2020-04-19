@@ -1,1 +1,1 @@
-stdout -> extern("core/Output")
+stdout -> extern("io/Output")
