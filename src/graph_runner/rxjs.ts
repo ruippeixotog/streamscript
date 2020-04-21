@@ -20,22 +20,15 @@ function toComponent(graph: Graph, logger: Logger, graphName?: string): Componen
       let outSubjects = new DeepMap<OutPort, Subject<any>>();
 
       function inObservablesFor(port: InPort): Observable<any>[] {
-        let inObservableList = inObservables.get(port);
-        if (!inObservableList) {
-          inObservableList = [];
-          inObservables.set(port, []);
-        }
-        return inObservableList;
+        return inObservables.getOrElseSet(port, () => []);
       }
 
       function outSubjectFor(port: InPort): Subject<any> {
-        let outSubject = outSubjects.get(port);
-        if (!outSubject) {
-          outSubject = new Subject<any>();
-          outSubjects.set(port, outSubject);
-          outSubject.subscribe(logger.portSubscriber(port, graphName));
-        }
-        return outSubject;
+        return outSubjects.getOrElseSet(port, () => {
+          const subj = new Subject<any>();
+          subj.subscribe(logger.portSubscriber(port, graphName));
+          return subj;
+        });
       }
 
       graph.edges.forEach(([from, to]) =>

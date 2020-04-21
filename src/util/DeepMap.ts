@@ -43,6 +43,19 @@ class DeepMap<K, V> implements Map<K, V> {
   values(): IterableIterator<V> {
     throw new Error("not implemented");
   }
+
+  getOrElse(key: K, defaultFunc: () => V): V {
+    const v = this.get(key);
+    return v !== undefined ? v : defaultFunc();
+  }
+  getOrElseSet(key: K, defaultFunc: () => V): V {
+    let v = this.get(key);
+    if (v === undefined) {
+      v = defaultFunc();
+      this.set(key, v);
+    }
+    return v;
+  }
 }
 
 export default DeepMap;

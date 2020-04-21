@@ -29,10 +29,10 @@ export type ExternalOutPort = {
 
 class Graph {
   componentStore: ComponentStore<any>;
-  nodes: Map<string, NodeImpl>;
-  edges: Set<[OutPort, InPort]>;
-  initials: Map<InPort, any>;
-  subgraphs: Map<string, Graph>;
+  nodes: DeepMap<string, NodeImpl>;
+  edges: DeepSet<[OutPort, InPort]>;
+  initials: DeepMap<InPort, any>;
+  subgraphs: DeepMap<string, Graph>;
   externalIns: ExternalInPort[];
   externalOuts: ExternalOutPort[];
 
@@ -40,10 +40,10 @@ class Graph {
 
   constructor(componentStore: ComponentStore<any>) {
     this.componentStore = componentStore;
-    this.nodes = new Map();
+    this.nodes = new DeepMap();
     this.edges = new DeepSet();
     this.initials = new DeepMap();
-    this.subgraphs = new Map();
+    this.subgraphs = new DeepMap();
     this.externalIns = [];
     this.externalOuts = [];
   }
@@ -58,10 +58,9 @@ class Graph {
   }
 
   addSubgraphNode(nodeId: string, subgraphId: string): NodeSpec {
-    const subgraph = this.subgraphs.get(subgraphId);
-    if (!subgraph) {
+    this.subgraphs.getOrElse(subgraphId, () => {
       throw new Error(`Unknown subgraph: ${subgraphId}`);
-    }
+    });
     this.nodes.set(nodeId, { subgraphId });
     return this.getNode(nodeId);
   }
@@ -70,10 +69,9 @@ class Graph {
     if (nodeId === Graph.VOID_NODE) {
       return this.getVoidNode();
     }
-    const nodeImpl = this.nodes.get(nodeId);
-    if (!nodeImpl) {
+    const nodeImpl = this.nodes.getOrElse(nodeId, () => {
       throw new Error(`Unknown node: ${nodeId}`);
-    }
+    });
     if ("componentId" in nodeImpl) {
       const component = this.componentStore.components[nodeImpl.componentId];
       if (!component) {
@@ -84,10 +82,9 @@ class Graph {
         outs: component.spec.outs.map(portName => ({ nodeId, portName }))
       };
     } else {
-      const subgraph = this.subgraphs.get(nodeImpl.subgraphId);
-      if (!subgraph) {
+      const subgraph = this.subgraphs.getOrElse(nodeImpl.subgraphId, () => {
         throw new Error(`Unknown subgraph: ${nodeImpl.subgraphId}`);
-      }
+      });
       return subgraph.asNodeSpec(nodeId);
     }
   }
@@ -137,11 +134,9 @@ class Graph {
   }
 
   getSubgraph(subgraphId): Graph {
-    const subgraph = this.subgraphs.get(subgraphId);
-    if (!subgraph) {
+    return this.subgraphs.getOrElse(subgraphId, () => {
       throw new Error(`Unknown subgraph: ${subgraphId}`);
-    }
-    return subgraph;
+    });
   }
 
   addSubgraph(subgraphId: string, subgraph: Graph): void {
