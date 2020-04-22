@@ -1,3 +1,5 @@
+import stableStringify from 'json-stable-stringify';
+
 class DeepMap<K, V> implements Map<K, V> {
   inner: Map<string, V>;
 
@@ -16,32 +18,36 @@ class DeepMap<K, V> implements Map<K, V> {
     this.inner.clear();
   }
   delete(key: K): boolean {
-    return this.inner.delete(JSON.stringify(key));
+    return this.inner.delete(stableStringify(key));
   }
   forEach(callbackfn: (value: V, key: K, map: Map<K, V>) => void, thisArg?: any): void {
     return this.inner.forEach((value, key, _) => callbackfn(value, JSON.parse(key), this), thisArg);
   }
   get(key: K): V | undefined {
-    return this.inner.get(JSON.stringify(key));
+    return this.inner.get(stableStringify(key));
   }
   has(key: K): boolean {
-    return this.inner.has(JSON.stringify(key));
+    return this.inner.has(stableStringify(key));
   }
   set(key: K, value: V): this {
-    this.inner.set(JSON.stringify(key), value);
+    this.inner.set(stableStringify(key), value);
     return this;
   }
   [Symbol.iterator](): IterableIterator<[K, V]> {
-    throw new Error("not implemented");
+    return this.entries();
   }
-  entries(): IterableIterator<[K, V]> {
-    throw new Error("not implemented");
+  *entries(): IterableIterator<[K, V]> {
+    for (const [k, v] of this.inner.entries()) {
+      yield [JSON.parse(k), v];
+    }
   }
-  keys(): IterableIterator<K> {
-    throw new Error("not implemented");
+  *keys(): IterableIterator<K> {
+    for (const k of this.inner.keys()) {
+      yield JSON.parse(k);
+    }
   }
   values(): IterableIterator<V> {
-    throw new Error("not implemented");
+    return this.inner.values();
   }
 
   getOrElse(key: K, defaultFunc: () => V): V {

@@ -1,3 +1,5 @@
+import stableStringify from 'json-stable-stringify';
+
 class DeepSet<T> implements Set<T> {
   inner: Set<string>;
 
@@ -13,32 +15,36 @@ class DeepSet<T> implements Set<T> {
   }
 
   add(value: T): this {
-    this.inner.add(JSON.stringify(value));
+    this.inner.add(stableStringify(value));
     return this;
   }
   clear(): void {
     this.inner.clear();
   }
   delete(value: T): boolean {
-    return this.inner.delete(JSON.stringify(value));
+    return this.inner.delete(stableStringify(value));
   }
   forEach(callbackfn: (value: T, value2: T, set: Set<T>) => void, thisArg?: any): void {
     return this.inner.forEach((value, value2, _) => callbackfn(JSON.parse(value), JSON.parse(value2), this), thisArg);
   }
   has(key: T): boolean {
-    return this.inner.has(JSON.stringify(key));
+    return this.inner.has(stableStringify(key));
   }
   [Symbol.iterator](): IterableIterator<T> {
-    throw new Error("not implemented");
+    return this.keys();
   }
-  entries(): IterableIterator<[T, T]> {
-    throw new Error("not implemented");
+  *entries(): IterableIterator<[T, T]> {
+    for (const [k1, k2] of this.inner.entries()) {
+      yield [JSON.parse(k1), JSON.parse(k2)];
+    }
   }
-  keys(): IterableIterator<T> {
-    throw new Error("not implemented");
+  *keys(): IterableIterator<T> {
+    for (const k of this.inner.keys()) {
+      yield JSON.parse(k);
+    }
   }
   values(): IterableIterator<T> {
-    throw new Error("not implemented");
+    return this.keys();
   }
 }
 
