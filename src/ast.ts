@@ -1,26 +1,3 @@
-// export type SSLang<T> = {
-//   Module: { stmts: T[] },
-//   Import: { moduleName: string },
-//   FunDecl: { funName: string, body: T },
-//   BinOp: { operator: string, lhs: T, rhs: T },
-//   UnOp: { operator: string, arg: T },
-//   Var: { moduleName: string | null, name: string },
-//   Index: { coll: T, index: T },
-//   Lambda: { ins: T[], outs: T[] | null, body: T },
-//   FunAppl: { func: T, args: T[] },
-//   Tuple: { elems: T[] },
-//   Literal: { value: string | number | boolean | null },
-//   Array: { elems: T[] },
-//   Object: { elems: [string, T][] }
-// };
-
-// export type SSNodeType = $Keys<SSLang<any>>;
-
-// type ToNode = <K, V>(K, V) => { ...V, uuid: string, type: K };
-// export type SSNode = $Values<$ObjMapi<SSLang<SSNode>, ToNode>>;
-// type ToReducer<T> = <V>(V) => V => T;
-// export type SSAlgebra<T> = $ObjMap<SSLang<T>, ToReducer<T>>;
-
 export type SSNode =
   { uuid: string, type: 'Module', stmts: SSNode[] } |
   { uuid: string, type: 'Import', moduleName: string } |
@@ -38,25 +15,13 @@ export type SSNode =
   { uuid: string, type: 'Wildcard' } |
   { uuid: string, type: 'Void' };
 
-export type SSNodeType = SSNode['type']; // $PropertyType<SSNode, 'type'>;
+export type SSNodeType = SSNode['type'];
 
-export type SSAction<T, U> = {
-  Module: (x: { uuid: string, stmts: T[] }) => U,
-  Import: (x: { uuid: string, moduleName: string }) => U,
-  FunDecl: (x: { uuid: string, funName: string, funDef: T }) => U,
-  BinOp: (x: { uuid: string, operator: string, lhs: T, rhs: T }) => U,
-  UnOp: (x: { uuid: string, operator: string, arg: T }) => U,
-  Var: (x: { uuid: string, moduleName: string | null, name: string }) => U,
-  Index: (x: { uuid: string, coll: T, index: T }) => U,
-  Lambda: (x: { uuid: string, ins: string[], outs: string[] | null, body: T[] }) => U,
-  FunAppl: (x: { uuid: string, func: T, args: T[] }) => U,
-  Tuple: (x: { uuid: string, elems: T[] }) => U,
-  Literal: (x: { uuid: string, value: string | number | boolean | null }) => U,
-  Array: (x: { uuid: string, elems: T[] }) => U,
-  Object: (x: { uuid: string, elems: [string, T][] }) => U,
-  Wildcard: (x: { uuid: string }) => U,
-  Void: (x: { uuid: string }) => U
-};
+type DeepReplace<T, C, A> = T extends C ? A : T extends object ? ObjectReplace<T, C, A> : T;
+type ObjectReplace<T, C, A> = { [P in keyof T]: DeepReplace<T[P], C, A> };
+
+type SSNodeMatch<K, T> = Omit<Extract<ObjectReplace<SSNode, SSNode, T>, { type: K }>, 'type'>;
+export type SSAction<T, U> = { [K in SSNodeType]: (x: SSNodeMatch<K, T>) => U };
 
 function fold<T>(node: SSNode, fs: SSAction<T, T>): T {
   const fold1 = (n: SSNode) => fold(n, fs);
