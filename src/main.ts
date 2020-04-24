@@ -1,8 +1,7 @@
 import fs from "fs";
 
 import parser from "./parser";
-import loader from "./rxjs/component_loader";
-import runner from "./rxjs/graph_runner";
+import { importRootDir, loader, runner } from "./rxjs";
 import compiler from "./graph_compiler";
 import printer from "./graph_printer";
 import Graph from "./graph";
@@ -15,7 +14,7 @@ async function runFile(filename: string): Promise<any> {
   const componentStore = await loader.loadComponents();
 
   const graph = new Graph(componentStore);
-  compiler.compileGraph(ast, graph, "sslib");
+  compiler.compileGraph(ast, graph, importRootDir);
 
   fs.writeFile("out/graph.dot", printer.toDOT(graph), () => {});
   printer.toPNG(graph, "out/graph.png");

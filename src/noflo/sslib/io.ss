@@ -1,0 +1,1 @@
+stdout -> extern("core/Output")
