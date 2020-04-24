@@ -1,6 +1,6 @@
 import { Observable, Subscription, zip } from "rxjs";
 import { map } from "rxjs/operators";
-import { ComponentSpec } from "./types";
+import { ComponentSpec } from "../types";
 
 export type Component = {
   spec: ComponentSpec,

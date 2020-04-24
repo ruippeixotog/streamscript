@@ -1,8 +1,8 @@
 import fs from "fs";
 
 import parser from "./parser";
-import loader from "./component_loader/rxjs";
-import runner from "./graph_runner/rxjs";
+import loader from "./rxjs/component_loader";
+import runner from "./rxjs/graph_runner";
 import compiler from "./graph_compiler";
 import printer from "./graph_printer";
 import Graph from "./graph";

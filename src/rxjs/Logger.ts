@@ -1,5 +1,5 @@
 import fs from "fs";
-import { InPort, OutPort } from "../../graph";
+import { InPort, OutPort } from "../graph";
 import { Subscriber } from "rxjs";
 
 class Logger {

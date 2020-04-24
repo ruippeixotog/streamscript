@@ -1,9 +1,9 @@
 import Graph, { InPort, OutPort } from "../graph";
 import { ComponentStore } from "../types";
-import { Component } from "../component";
+import { Component } from "./component";
 import { asyncScheduler, merge, Observable, scheduled, Subject, Subscription } from "rxjs";
 import { tap } from "rxjs/operators";
-import Logger from "./rxjs/Logger";
+import Logger from "./Logger";
 import DeepMap from "../util/DeepMap";
 
 function toComponent(graph: Graph, logger: Logger, graphName?: string): Component {

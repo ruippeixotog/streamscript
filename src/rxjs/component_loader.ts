@@ -1,7 +1,7 @@
 import util from "util";
 import fs from "fs";
 import path from "path";
-import { Component } from "../component";
+import { Component } from "./component";
 import { ComponentDef, ComponentStore } from "../types";
 
 const identity = "core/Identity";
@@ -39,12 +39,12 @@ function getComponentSpec(name: string, c: Component): ComponentDef<Component> {
 }
 
 async function loadComponents(): Promise<ComponentStore<Component>> {
-  const packageModules = await util.promisify(fs.readdir)("src/components");
+  const packageModules = await util.promisify(fs.readdir)("src/rxjs/components");
 
   const components = packageModules.flatMap(f => {
     const packageName = path.parse(f).name;
     const packageComponents: { [name: string]: Component } =
-      require.main?.require(`./components/${packageName}`);
+      require.main?.require(`./rxjs/components/${packageName}`);
 
     return Object.entries(packageComponents)
       .map<[string, ComponentDef<Component>]>(([name, comp]) => {
