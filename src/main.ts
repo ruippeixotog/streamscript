@@ -15,7 +15,7 @@ async function runFile(filename: string): Promise<any> {
   const componentStore = await loader.loadComponents();
 
   const graph = new Graph(componentStore);
-  compiler.compileGraph(ast, graph);
+  compiler.compileGraph(ast, graph, "sslib");
 
   fs.writeFile("out/graph.dot", printer.toDOT(graph), () => {});
   printer.toPNG(graph, "out/graph.png");

@@ -10,6 +10,7 @@ import type { InPort, NodeSpec } from "./graph";
 function compileGraph(
   ast: SSNode,
   graph: Graph,
+  importRootDir: string,
   thisModuleName: string | null = null): NodeSpec {
 
   const graphX = new GraphX(graph);
@@ -21,8 +22,8 @@ function compileGraph(
         return { ins: [], outs: [] };
       },
       Import: ({ moduleName }) => {
-        const moduleAst = parser.parseFile(`sslib/${moduleName}.ss`);
-        compileGraph(moduleAst, graphX.graph(), moduleName);
+        const moduleAst = parser.parseFile(`${importRootDir}/${moduleName}.ss`);
+        compileGraph(moduleAst, graphX.graph(), importRootDir, moduleName);
         return { ins: [], outs: [] };
       },
       FunDecl: ({ funName, funDef }) => {
