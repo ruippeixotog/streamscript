@@ -9,7 +9,7 @@
   },
 
   "parserOptions": {
-    "ecmaVersion": 6,
+    "ecmaVersion": 11,
     "sourceType": "module"
   },
 
@@ -34,5 +34,9 @@
     "no-console": 0,
 
     "no-unused-vars": 0
+  },
+  "globals": {
+    "AsyncGenerator": true,
+    "IteratorResult": true
   }
 }
