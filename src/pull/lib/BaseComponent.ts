@@ -1,22 +1,16 @@
 import {ComponentSpec} from "../../types";
-import {Component, Publisher, Subscriber, Subscription} from "../types";
+import {Component, Publisher, Subscriber} from "../types";
 import Deferred from "../../util/Deferred";
+import OutPort from "./OutPort";
+import InPort from "./InPort";
 
 abstract class BaseComponent<Ins extends any[], Outs extends any[]> implements Component<Ins, Outs> {
   static readonly spec: ComponentSpec;
 
-  inState: {
-    queue: Ins[number][],
-    demanded: number,
-    subscriptions: { ref: Subscription, demanded: number }[]
-  }[];
+  private inPorts: InPort<Outs[number]>[];
+  private outPorts: OutPort<Outs[number]>[];
 
-  outState: {
-    demand: number,
-    subscribers: { ref: Subscriber<Outs[number]>, demand: number }[],
-  }[];
-
-  whenTerminatedHandler: Deferred<void>;
+  private whenTerminatedHandler: Deferred<void>;
 
   abstract onNext(idx: number, value: Ins[number]): void;
   abstract onRequest(idx: number, n: number): void;
@@ -36,15 +30,18 @@ abstract class BaseComponent<Ins extends any[], Outs extends any[]> implements C
   }
 
   constructor() {
-    this.inState = this.spec.ins.map(_ => ({
-      queue: [],
-      demanded: 0,
-      subscriptions: []
+    this.inPorts = this.spec.ins.map((name, i) => new InPort(`${this.constructor.name}[${name}]`, {
+      onSubscribe: _ => {},
+      onNext: value => this.onNext(i, value),
+      onError: err => this.onError(i, err),
+      onComplete: () => this.onComplete(i)
     }));
-    this.outState = this.spec.outs.map(_ => ({
-      subscribers: [],
-      demand: 0
+
+    this.outPorts = this.spec.outs.map((name, i) => new OutPort(`${this.constructor.name}[${name}]`, {
+      request: n => this.onRequest(i, n),
+      cancel: () => this.onCancel(i)
     }));
+
     this.whenTerminatedHandler = new Deferred();
   }
 
@@ -58,8 +55,8 @@ abstract class BaseComponent<Ins extends any[], Outs extends any[]> implements C
   }
 
   terminate(): void {
-    this.inState.forEach((_, i) => this.cancelIn(i));
-    this.outState.forEach((_, i) => this.completeOut(i));
+    this.inPorts.forEach(port => port.cancel());
+    this.outPorts.forEach(port => port.complete());
   }
 
   whenTerminated(): Promise<any> {
@@ -67,128 +64,43 @@ abstract class BaseComponent<Ins extends any[], Outs extends any[]> implements C
   }
 
   subscriberFor(idx: number): Subscriber<Ins[number]> {
-    const localSubs: Subscription[] = [];
-    return {
-      onSubscribe: s => {
-        localSubs.push(s);
-        this.inState[idx].subscriptions.push({ ref: s, demanded: 0 });
-      },
-      onNext: value => {
-        console.log(`${this.constructor.name}[${idx}] Received ${JSON.stringify(value)}`);
-        const st = this.inState[idx];
-        if(st.demanded === 0) {
-          st.queue.push(value);
-        } else {
-          st.demanded--;
-          this.onNext(idx, value);
-        }
-        st.subscriptions
-          .filter(s => localSubs.indexOf(s.ref) === -1)
-          .forEach(s => s.demanded--);
-      },
-      onError: err => {
-        console.log(`${this.constructor.name}[${idx}] Received <error>`);
-        this.inState[idx].subscriptions = this.inState[idx].subscriptions
-          .filter(s => localSubs.indexOf(s.ref) === -1);
-        this.onError(idx, err);
-      },
-      onComplete: () => {
-        console.log(`${this.constructor.name}[${idx}] Received <complete>`);
-        const newSubscriptions = this.inState[idx].subscriptions =
-          this.inState[idx].subscriptions.filter(s => localSubs.indexOf(s.ref) === -1);
-        if(newSubscriptions.length == 0) {
-          this.onComplete(idx);
-        }
-      }
-    }
+    return this.inPorts[idx].newSubscriber();
   }
 
   publisherFor(idx: number): Publisher<Outs[number]> {
-    const st = this.outState[idx];
-    return {
-      subscribe: s => {
-        this.outState[idx].subscribers.push({ ref: s, demand: 0 });
-        s.onSubscribe({
-          request: (n: number) => {
-            if(!st.subscribers.find(s0 => s0.ref === s)) {
-              return;
-            }
-            console.log(`${this.constructor.name}[${idx}] received request of ${n}`);
-            st.subscribers
-              .filter(s0 => s0.ref === s)
-              .forEach(s0 => s0.demand += n);
-
-            const sharedDemand =
-              st.subscribers.reduce((acc, s) => Math.min(acc, s.demand), Number.MAX_SAFE_INTEGER);
-
-            if(sharedDemand > 0) {
-              st.subscribers.forEach(s => s.demand -= sharedDemand);
-              st.demand += sharedDemand;
-              this.onRequest(idx, sharedDemand);
-            }
-          },
-          cancel: () => {
-            setImmediate(() => s.onComplete());
-            const newSubscribers = this.outState[idx].subscribers =
-              this.outState[idx].subscribers.filter(s0 => s0.ref !== s);
-
-            if(newSubscribers.length === 0) {
-              this.onCancel(idx);
-              this.completeOut(idx);
-            }
-          }
-        });
-      }
-    }
+    return this.outPorts[idx];
   }
 
   requestIn(idx: number, n: number): void {
-    console.log(`${this.constructor.name} requested ${n} on port ${idx}`);
-
-    const st = this.inState[idx];
-    while(n > 0 && st.queue.length > 0) {
-      this.onNext(idx, st.queue.shift());
-      n--;
-    }
-    st.demanded += n;
-    st.subscriptions
-      .filter(s => s.demanded < st.demanded)
-      .forEach(s => setImmediate(() => s.ref.request(st.demanded - s.demanded)));
+    this.inPorts[idx].request(n);
   }
 
   cancelIn(idx: number): void {
-    this.inState[idx].subscriptions.forEach(s => setImmediate(() => s.ref.cancel()));
+    this.inPorts[idx].cancel();
   }
 
   sendOut(idx: number, value: Outs[number]): void {
-    const st = this.outState[idx];
-    if(st.demand <= 0) {
-      throw new Error(`${this.constructor.name}: Unexpected sendOut on ${idx}`);
-    }
-    st.subscribers.forEach(sub => setImmediate(() => sub.ref.onNext(value)));
-    st.demand--;
+    this.outPorts[idx].push(value);
   }
 
   completeOut(idx: number): void {
-    this.outState[idx].subscribers.forEach(sub => setImmediate(() => sub.ref.onComplete()));
-    this.outState[idx].subscribers = [];
+    this.outPorts[idx].complete();
   }
 
   errorOut(idx: number, err: Error): void {
-    this.outState[idx].subscribers.forEach(sub => sub.ref.onError(err));
-    this.outState[idx].subscribers = [];
+    this.outPorts[idx].error(err);
   }
 
   errorAll(err: Error): void {
-    this.inState.forEach((_, i) => this.cancelIn(i));
-    this.outState.forEach((_, i) => this.errorOut(i, err));
+    this.inPorts.forEach(port => port.cancel());
+    this.outPorts.forEach(port => port.error(err));
   }
 
   _checkTermination() {
     const insDone = this.spec.ins.length > 0 &&
-      this.inState.every(st => st.subscriptions.length === 0);
+      this.inPorts.every(st => st.subscriptionCount() === 0);
     const outsDone = this.spec.outs.length > 0 &&
-      this.outState.every(st => st.subscribers.length === 0);
+      this.outPorts.every(st => st.subscriberCount() === 0);
 
     if(insDone || outsDone) {
       this.terminate();
@@ -197,9 +109,9 @@ abstract class BaseComponent<Ins extends any[], Outs extends any[]> implements C
 
   _checkIfTerminated() {
     const insDone = this.spec.ins.length === 0 ||
-      this.inState.every(st => st.subscriptions.length === 0);
+      this.inPorts.every(st => st.subscriptionCount() === 0);
     const outsDone = this.spec.outs.length === 0 ||
-      this.outState.every(st => st.subscribers.length === 0);
+      this.outPorts.every(st => st.subscriberCount() === 0);
 
     if(insDone && outsDone) {
       console.log(`Complete ${this.constructor.name}`);
@@ -207,12 +119,5 @@ abstract class BaseComponent<Ins extends any[], Outs extends any[]> implements C
     }
   }
 }
-
-// export type Source<T> = Component<[], [T]>;
-// export type Flow<T, U> = Component<[T], [U]>;
-// export type FanIn<T, U> = Component<T[], [U]>;
-// export type FanIn2<A1, A2, U> = Component<[A1, A2], [U]>;
-// export type FanIn3<A1, A2, A3, U> = Component<[A1, A2, A3], [U]>;
-// export type Sink<T> = Component<[T], []>;
 
 export default BaseComponent;
