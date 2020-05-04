@@ -8,7 +8,7 @@ export class Output<T> extends BaseComponent<[T], []> {
   onNext<K>(idx: K, value: T): void {
     console.log(value);
     if (this.active) {
-      this.requestIn(0, 1);
+      this.inPort(0).request(1);
     }
   }
 
@@ -17,7 +17,7 @@ export class Output<T> extends BaseComponent<[T], []> {
   start(): void {
     super.start();
     this.active = true;
-    this.requestIn(0, 1);
+    this.inPort(0).request(1);
   }
 
   terminate(): void {

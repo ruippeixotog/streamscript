@@ -54,9 +54,9 @@ class OutPort<T> implements Publisher<T> {
       });
   }
 
-  push(t: T): void {
+  send(t: T): void {
     if(!this.active || this.demand <= 0) {
-      throw new Error("Illegal push on out port");
+      throw new Error("Illegal send on out port");
     }
     this.subscribers.forEach(s => setImmediate(() => s.ref.onNext(t)));
     this.demand--;

@@ -15,7 +15,7 @@ abstract class PromiseComponent<Ins extends any[], Out> extends BaseComponent<In
 
   pullAsync(idx: number): Promise<IteratorResult<Ins[number]>> {
     const deferred = new Deferred<IteratorResult<Ins[number]>>();
-    this.requestIn(idx, 1);
+    this.inPort(idx).request(1);
     this.inPromises[idx].push(deferred);
     return deferred.promise;
   }
@@ -40,10 +40,10 @@ abstract class PromiseComponent<Ins extends any[], Out> extends BaseComponent<In
         this.processAsync()
           .then(v => {
             if(!this.outCancelled) {
-              v.done ? this.completeOut(idx) : this.sendOut(idx, v.value)
+              v.done ? this.outPort(idx).complete() : this.outPort(idx).send(v.value)
             }
           })
-          .catch(err => this.errorOut(idx, err))
+          .catch(err => this.outPort(idx).error(err))
           .finally(() => this.pendingOutPromises.delete(outPromise));
 
       this.pendingOutPromises.add(outPromise);

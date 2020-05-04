@@ -71,24 +71,12 @@ abstract class BaseComponent<Ins extends any[], Outs extends any[]> implements C
     return this.outPorts[idx];
   }
 
-  requestIn(idx: number, n: number): void {
-    this.inPorts[idx].request(n);
+  inPort(idx: number): InPort<Ins[number]> {
+    return this.inPorts[idx];
   }
 
-  cancelIn(idx: number): void {
-    this.inPorts[idx].cancel();
-  }
-
-  sendOut(idx: number, value: Outs[number]): void {
-    this.outPorts[idx].push(value);
-  }
-
-  completeOut(idx: number): void {
-    this.outPorts[idx].complete();
-  }
-
-  errorOut(idx: number, err: Error): void {
-    this.outPorts[idx].error(err);
+  outPort(idx: number): OutPort<Outs[number]> {
+    return this.outPorts[idx];
   }
 
   errorAll(err: Error): void {

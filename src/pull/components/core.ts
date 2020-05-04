@@ -4,11 +4,11 @@ export class Identity<T> extends BaseComponent<[T], [T]> {
   static spec = { ins: ["in"], outs: ["out"] };
 
   onNext<K extends number & keyof [T]>(idx: K, value: T): void {
-    this.sendOut(idx, value);
+    this.outPort(idx).send(value);
   }
 
   onRequest<K extends number & keyof [T]>(idx: K, n: number): void {
-    this.requestIn(idx, n);
+    this.inPort(idx).request(n);
   }
 }
 
@@ -25,7 +25,7 @@ export class Single<T> extends BaseComponent<[], [T]> {
   onNext<K extends number & keyof []>(idx: K, value: never): void {}
 
   onRequest<K extends number & keyof [T]>(idx: K, n: number): void {
-    this.sendOut(idx, this.singleValue);
+    this.outPort(idx).send(this.singleValue);
     this.terminate();
   }
 }
@@ -43,7 +43,7 @@ export class Repeat<T> extends BaseComponent<[], [T]> {
   onNext<K extends number & keyof []>(idx: K, value: never): void {}
 
   onRequest<K extends number & keyof [T]>(idx: K, n: number): void {
-    this.sendOut(idx, this.repValue);
+    this.outPort(idx).send(this.repValue);
   }
 }
 
