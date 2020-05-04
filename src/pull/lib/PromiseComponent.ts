@@ -2,13 +2,13 @@ import BaseComponent from "./BaseComponent";
 import Deferred from "../../util/Deferred";
 
 abstract class PromiseComponent<Ins extends any[], Out> extends BaseComponent<Ins, [Out]> {
-  inPromises: Deferred<IteratorResult<Ins[number]>>[][];
-  outCancelled: boolean;
+  private inPromises: Deferred<IteratorResult<Ins[number]>>[][];
+  private pendingOutPromises: Set<Promise<void>> = new Set();
+  private outCancelled: boolean = false;
 
   constructor() {
     super();
     this.inPromises = this.spec.ins.map(_ => []);
-    this.outCancelled = false;
   }
 
   abstract processAsync(): Promise<IteratorResult<Out>>;
@@ -25,31 +25,40 @@ abstract class PromiseComponent<Ins extends any[], Out> extends BaseComponent<In
   }
 
   onError(idx: number, err: Error): void {
-    super.onError(idx, err);
     this.inPromises[idx].shift()?.reject(err);
+    super.onError(idx, err);
   }
 
   onComplete(idx: number): void {
-    super.onComplete(idx);
     this.inPromises[idx].shift()?.resolve({ value: undefined, done: true });
+    super.onComplete(idx);
   }
 
   onRequest(idx: number, n: number): void {
     for(let i = 0; i < n; i++) {
-      this.processAsync()
-        .then(v => {
-          if(!this.outCancelled) {
-            v.done ? this.completeOut(idx) : this.sendOut(idx, v.value)
-          }
-        })
-        .catch(err => this.errorOut(idx, err));
+      const outPromise =
+        this.processAsync()
+          .then(v => {
+            if(!this.outCancelled) {
+              v.done ? this.completeOut(idx) : this.sendOut(idx, v.value)
+            }
+          })
+          .catch(err => this.errorOut(idx, err))
+          .finally(() => this.pendingOutPromises.delete(outPromise));
+
+      this.pendingOutPromises.add(outPromise);
     }
   }
 
   onCancel(idx: number): void {
     super.onCancel(idx);
     this.outCancelled = true;
-    this.completeOut(idx);
+  }
+
+  terminate(): void {
+    // super.terminate();
+    Promise.all(Array.from(this.pendingOutPromises))
+      .finally(() => super.terminate());
   }
 }
 
