@@ -122,7 +122,7 @@ function compileGraph(
         }
         return { ins, outs };
       },
-      Literal: ({ value }) => graphX.addConstNode(value),
+      Literal: ({ uuid, value }) => graphX.addConstNode(value, uuid),
       Array: ({ uuid, elems }) => {
         const elemSpecs = elems.map(build);
         return elemSpecs.reduce(
@@ -132,7 +132,7 @@ function compileGraph(
             const node = graphX.graph().addNode(`ArrayPush: #${uuid}_${elemIdx}`, componentId);
             return graphX.graph().connectNodesBin(arr, elem, node);
           },
-          graphX.addConstNode([])
+          graphX.addConstNode([], uuid)
         );
       },
       Object: ({ uuid, elems }) => {
@@ -147,7 +147,7 @@ function compileGraph(
             graphX.graph().connectPorts(obj.outs[0], node.ins[2]);
             return { ins: [], outs: node.outs };
           },
-          graphX.addConstNode({})
+          graphX.addConstNode({}, uuid)
         );
       },
       Wildcard: () => {

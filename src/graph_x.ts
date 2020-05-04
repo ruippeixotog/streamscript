@@ -17,9 +17,9 @@ class GraphX {
     return this.scopes[this.scopes.length - 1].graph;
   }
 
-  addConstNode(value: any): NodeSpec {
+  addConstNode(value: any, uuid: string): NodeSpec {
     const node = this.graph().addNode(
-      this.nodeIdForConst(value),
+      this.nodeIdForConst(value, uuid),
       this.graph().componentStore.specials.identity
     );
     this.graph().setInitial(node.ins[0], value);
@@ -80,8 +80,8 @@ class GraphX {
     return (moduleName ? moduleName + "." : "") + name;
   }
 
-  nodeIdForConst(value: any): string {
-    return `Const: ${JSON.stringify(value)}`;
+  nodeIdForConst(value: any, uuid: string): string {
+    return `Const: ${JSON.stringify(value)} #${uuid}`;
   }
 
   nodeIdForVar(moduleName: string | null, name: string): string {
