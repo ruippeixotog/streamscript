@@ -28,12 +28,6 @@ class InPort<T> implements Subscription {
 
       onNext: value => {
         console.log(`${this.name}: Received ${JSON.stringify(value)}`);
-        if (this.demanded === 0) {
-          this.queue.push(value);
-        } else {
-          this.demanded--;
-          this.compSubscriber.onNext(value);
-        }
         this.subscriptions
           .filter(s => localSubs.indexOf(s.ref) !== -1)
           .forEach(s => {
@@ -42,16 +36,22 @@ class InPort<T> implements Subscription {
             }
             s.demanded--;
           });
+
+        if (this.demanded === 0) {
+          console.log(`${this.name}: Enqueued ${JSON.stringify(value)}`);
+          this.queue.push(value);
+        } else {
+          this.demanded--;
+          // TODO: this should be able to be setImmedaiate, but it can't!!
+          this.compSubscriber.onNext(value);
+        }
       },
 
       onComplete: () => {
         console.log(`${this.name}: Received <complete>`);
-        const newSubscriptions = this.subscriptions =
+        this.subscriptions =
           this.subscriptions.filter(s => localSubs.indexOf(s.ref) === -1);
-        if (newSubscriptions.length === 0) {
-          this.active = false;
-          this.compSubscriber.onComplete();
-        }
+        this._maybeComplete();
       },
 
       onError: err => {
@@ -71,19 +71,30 @@ class InPort<T> implements Subscription {
       this.compSubscriber.onNext(<T> this.queue.shift());
       n--;
     }
-    const innerDemanded = this.demanded += n;
-    this.subscriptions
-      .filter(s => s.demanded < innerDemanded)
-      .forEach(s =>
-        setImmediate(() => {
-          s.ref.request(innerDemanded - s.demanded);
-          s.demanded = innerDemanded;
-        })
-      );
+    if (!this._maybeComplete()) {
+      const innerDemanded = this.demanded += n;
+      this.subscriptions
+        .filter(s => s.demanded < innerDemanded)
+        .forEach(s =>
+          setImmediate(() => {
+            s.ref.request(innerDemanded - s.demanded);
+            s.demanded = innerDemanded;
+          })
+        );
+    }
   }
 
   cancel(): void {
     this.subscriptions.forEach(s => setImmediate(() => s.ref.cancel()));
+  }
+
+  private _maybeComplete() {
+    if (this.active && this.subscriptions.length === 0 && this.queue.length === 0) {
+      this.active = false;
+      this.compSubscriber.onComplete();
+      return true;
+    }
+    return false;
   }
 }
 
