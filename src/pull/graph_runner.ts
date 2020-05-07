@@ -3,8 +3,10 @@ import {ComponentStore} from "../types";
 import {Component, Publisher, Subscriber} from "./types";
 import {ComponentClass} from "./component_loader";
 import {Single} from "./components/core";
+import Builder from "./lib/PublisherBuilder";
+import Logger from "./Logger";
 
-function toComponent(graph: Graph, graphName?: string): Component<any[], any[]> {
+function toComponent(graph: Graph, logger: Logger, graphName?: string): Component<any[], any[]> {
   let componentStore: ComponentStore<ComponentClass> = graph.componentStore;
   let nodeComponents: { [nodeId: string]: Component<any, any> } = {};
 
@@ -12,29 +14,34 @@ function toComponent(graph: Graph, graphName?: string): Component<any[], any[]> 
     nodeComponents[nodeId] =
       "componentId" in nodeImpl ?
         new componentStore.components[nodeImpl.componentId].impl() :
-        toComponent(graph.getSubgraph(nodeImpl.subgraphId), nodeId);
+        toComponent(graph.getSubgraph(nodeImpl.subgraphId), logger, nodeId);
+
+    nodeComponents[nodeId].whenTerminated()
+      .then(logger.nodeSubscriber(nodeId, graphName));
   });
 
   graph.edges.forEach(([from, to]) => {
     const fromComp = nodeComponents[from.nodeId];
     const toComp = nodeComponents[to.nodeId];
-    fromComp.publisherFor(fromComp.spec.outs.indexOf(from.portName)).subscribe(
-      toComp.subscriberFor(toComp.spec.ins.indexOf(to.portName))
-    );
+    Builder
+      .from(fromComp.publisherFor(fromComp.spec.outs.indexOf(from.portName)))
+      .tap(...logger.edgeSubscriber(from, to, graphName))
+      .to(toComp.subscriberFor(toComp.spec.ins.indexOf(to.portName)));
   });
 
   graph.initials.forEach((value, port) => {
     const toComp = nodeComponents[port.nodeId];
-    new Single(value).publisherFor(0).subscribe(
-      toComp.subscriberFor(toComp.spec.ins.indexOf(port.portName))
-    );
+    Builder
+      .from(new Single(value).publisherFor(0))
+      .tap(...logger.edgeInitialSubscriber(value, port, graphName))
+      .to(toComp.subscriberFor(toComp.spec.ins.indexOf(port.portName)));
   });
 
   // function printStatus() {
   //   console.log(Object.entries(nodeComponents).map(([key, comp]) => [key, comp.whenTerminated()]));
   //   setTimeout(printStatus, 1000);
   // }
-  // printStatus();
+  // setTimeout(printStatus, 1000);
 
   return {
     spec: {
@@ -71,7 +78,8 @@ function toComponent(graph: Graph, graphName?: string): Component<any[], any[]> 
 }
 
 async function runGraph(graph: Graph): Promise<any> {
-  const comp = toComponent(graph);
+  const logger = new Logger("out/packets");
+  const comp = toComponent(graph, logger);
   comp.start();
   await comp.whenTerminated();
 }

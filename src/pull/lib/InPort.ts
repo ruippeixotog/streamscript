@@ -27,7 +27,6 @@ class InPort<T> implements Subscription {
       },
 
       onNext: value => {
-        console.log(`${this.name}: Received ${JSON.stringify(value)}`);
         this.subscriptions
           .filter(s => localSubs.indexOf(s.ref) !== -1)
           .forEach(s => {
@@ -38,7 +37,6 @@ class InPort<T> implements Subscription {
           });
 
         if (this.demanded === 0) {
-          console.log(`${this.name}: Enqueued ${JSON.stringify(value)}`);
           this.queue.push(value);
         } else {
           this.demanded--;
@@ -48,14 +46,12 @@ class InPort<T> implements Subscription {
       },
 
       onComplete: () => {
-        console.log(`${this.name}: Received <complete>`);
         this.subscriptions =
           this.subscriptions.filter(s => localSubs.indexOf(s.ref) === -1);
         this._maybeComplete();
       },
 
       onError: err => {
-        console.log(`${this.name}: Received <error>`);
         this.subscriptions = this.subscriptions
           .filter(s => localSubs.indexOf(s.ref) === -1);
         this.active = false;
@@ -65,8 +61,6 @@ class InPort<T> implements Subscription {
   }
 
   request(n: number): void {
-    console.log(`${this.name}: ${n} requested`);
-
     while(n > 0 && this.queue.length > 0) {
       this.compSubscriber.onNext(<T> this.queue.shift());
       n--;

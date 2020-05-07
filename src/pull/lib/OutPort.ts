@@ -25,7 +25,6 @@ class OutPort<T> implements Publisher<T> {
           if (!this.subscribers.find(s0 => s0.ref === subscriber)) {
             return;
           }
-          // console.log(`${this.constructor.name}[${idx}] received request of ${n}`);
           this.subscribers
             .filter(s0 => s0.ref === subscriber)
             .forEach(s0 => s0.demand += n);
