@@ -100,7 +100,7 @@ function compileGraph(
         util.assertInArity(args.length, node);
 
         const openIns = args.reduce<InPort[]>((ins, arg, i) => {
-          if (arg.type === 'Wildcard') {
+          if (arg.type === "Wildcard") {
             return ins.concat(node.ins[i]);
           } else {
             const argNode = build(arg);

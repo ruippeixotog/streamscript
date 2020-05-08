@@ -3,7 +3,7 @@ import BaseComponent from "../lib/BaseComponent";
 export class Output<T> extends BaseComponent<[T], []> {
   static spec = { ins: ["in1"], outs: [] };
 
-  active: boolean = false;
+  active = false;
 
   onNext<K>(idx: K, value: T): void {
     console.log(value);

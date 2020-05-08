@@ -3,11 +3,11 @@ import { map } from "rxjs/operators";
 import { ComponentSpec } from "../types";
 
 export type Component = {
-  spec: ComponentSpec,
+  spec: ComponentSpec;
   connect: (...args: Observable<any>[]) => {
-    outs: Observable<any>[],
-    activate: () => Subscription | null
-  },
+    outs: Observable<any>[];
+    activate: () => Subscription | null;
+  };
 };
 
 export type Source<T> = () => Observable<T>;

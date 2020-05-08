@@ -3,7 +3,7 @@ import Deferred from "../../util/Deferred";
 
 abstract class PromiseComponent<Ins extends any[], Out> extends BaseComponent<Ins, [Out]> {
   private inPromises: Deferred<IteratorResult<Ins[number]>>[][];
-  private outCancelled: boolean = false;
+  private outCancelled = false;
 
   constructor() {
     super();
@@ -34,7 +34,7 @@ abstract class PromiseComponent<Ins extends any[], Out> extends BaseComponent<In
   }
 
   onRequest(idx: number, n: number): void {
-    for(let i = 0; i < n; i++) {
+    for (let i = 0; i < n; i++) {
       this.outPort(idx).sendAsync(this.processAsync());
     }
   }

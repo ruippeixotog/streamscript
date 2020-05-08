@@ -1,8 +1,8 @@
 import util from "util";
 import fs from "fs";
 import path from "path";
-import {Component} from "./types";
-import {ComponentDef, ComponentSpec, ComponentStore} from "../types";
+import { Component } from "./types";
+import { ComponentDef, ComponentSpec, ComponentStore } from "../types";
 
 const identity = "core/Identity";
 

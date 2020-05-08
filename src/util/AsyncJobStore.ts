@@ -1,7 +1,7 @@
 import Deferred from "./Deferred";
 
 class AsyncJobStore {
-  draining: boolean = false;
+  draining = false;
   pendingJobs: Set<Promise<any>> = new Set();
 
   add(job: () => any) {

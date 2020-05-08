@@ -43,14 +43,14 @@ export class Repeat<T> extends BaseComponent<[], [T]> {
 
   onRequest<K extends number & keyof [T]>(idx: K, n: number): void {
     if (this.repValue !== undefined) {
-      for(let i = 0; i < n; i++) {
+      for (let i = 0; i < n; i++) {
         this.outPort(idx).send(this.repValue);
       }
     }
   }
 
   onComplete(idx: number) {
-    if(this.repValue === undefined) {
+    if (this.repValue === undefined) {
       super.onComplete(idx);
     }
   }
@@ -67,7 +67,7 @@ export class Kick<T> extends BaseComponent<[any, T], [T]> {
   private data?: T;
 
   onNext<K extends number & keyof [any, T]>(idx: K, value: T): void {
-    if(idx === 1) {
+    if (idx === 1) {
       this.data = value;
       this.inPort(1).request(1);
     } else if (this.data) {
@@ -89,12 +89,12 @@ export class Interval extends BaseComponent<[number], [number]> {
   static spec = { ins: ["period"], outs: ["out"] };
 
   private currPeriod?: number;
-  private demand: number = 0;
-  private next: number = 0;
-  private ready: boolean = false;
+  private demand = 0;
+  private next = 0;
+  private ready = false;
 
   onNext<K extends number & keyof [number]>(idx: K, value: number): void {
-    if(this.currPeriod === undefined) {
+    if (this.currPeriod === undefined) {
       this.schedule(value);
     }
     this.currPeriod = value;
@@ -103,21 +103,21 @@ export class Interval extends BaseComponent<[number], [number]> {
 
   onRequest<K extends number & keyof [number]>(idx: K, n: number): void {
     this.demand += n;
-    if(this.ready) {
+    if (this.ready) {
       this.onReady();
       this.ready = false;
     }
   }
 
   schedule(period?: number) {
-    if(period === undefined) {
+    if (period === undefined) {
       return;
     }
     setTimeout(() => this.onReady(), period);
   }
 
   onReady() {
-    if(this.demand > 0) {
+    if (this.demand > 0) {
       this.outPort(0).send(this.next++);
       this.demand--;
       this.schedule(this.currPeriod);
@@ -127,7 +127,7 @@ export class Interval extends BaseComponent<[number], [number]> {
   }
 
   onComplete(idx: number) {
-    if(this.currPeriod === undefined) {
+    if (this.currPeriod === undefined) {
       super.onComplete(idx);
     }
   }
@@ -142,7 +142,7 @@ export class If<T> extends BaseComponent<[boolean, T, T], [T]> {
   static spec = { ins: ["cond", "then", "else"], outs: ["out"] };
 
   onNext<K extends number & keyof [boolean, T, T]>(idx: K, value: boolean | T): void {
-    if(idx === 0) {
+    if (idx === 0) {
       this.inPort(value ? 1 : 2).request(1);
     } else {
       this.outPort(0).send(<T> value);
@@ -157,22 +157,22 @@ export class If<T> extends BaseComponent<[boolean, T, T], [T]> {
 export class Buffer<T> extends BaseComponent<[T, number], [T]> {
   static spec = { ins: ["in", "n"], outs: ["out"] };
 
-  private bufSize: number = 0;
+  private bufSize = 0;
   private buffer: T[] = [];
 
   onNext<K extends number & keyof [T, number]>(idx: number, value: T | number): void {
-    if(idx === 1) {
+    if (idx === 1) {
       this.bufSize = <number> value;
       this.inPort(1).request(1);
     } else {
-      if(this.outPort(0).requested() == 0) this.buffer.push(<T> value);
+      if (this.outPort(0).requested() == 0) this.buffer.push(<T> value);
       else this.outPort(0).send(<T> value);
     }
     this.adjustDemanded();
   }
 
   onRequest<K extends number & keyof [T]>(idx: number, n: number): void {
-    while(n > 0 && this.buffer.length > 0) {
+    while (n > 0 && this.buffer.length > 0) {
       this.outPort(0).send(<T> this.buffer.shift());
       n--;
     }
@@ -180,7 +180,7 @@ export class Buffer<T> extends BaseComponent<[T, number], [T]> {
   }
 
   adjustDemanded(): void {
-    if(this.inPort(0).requested() < this.outPort(0).requested() + this.bufSize) {
+    if (this.inPort(0).requested() < this.outPort(0).requested() + this.bufSize) {
       this.inPort(0).request(this.outPort(0).requested() - this.inPort(0).requested() + this.bufSize);
     }
   }

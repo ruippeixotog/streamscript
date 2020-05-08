@@ -15,7 +15,7 @@ function lift(func) {
   return liftedFunc;
 }
 
-function astNode<T>(type: SSNodeType, data: T): { uuid: string, type: SSNodeType } & T {
+function astNode<T>(type: SSNodeType, data: T): { uuid: string; type: SSNodeType } & T {
   return { uuid: (++nodeNumber).toString(), type, ...data };
 }
 

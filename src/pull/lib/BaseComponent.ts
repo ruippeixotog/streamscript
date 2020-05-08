@@ -1,5 +1,5 @@
-import {ComponentSpec} from "../../types";
-import {Component, Publisher, Subscriber} from "../types";
+import { ComponentSpec } from "../../types";
+import { Component, Publisher, Subscriber } from "../types";
 import Deferred from "../../util/Deferred";
 import OutPort from "./OutPort";
 import InPort from "./InPort";
@@ -90,7 +90,7 @@ abstract class BaseComponent<Ins extends any[], Outs extends any[]> implements C
     const outsDone = this.spec.outs.length > 0 &&
       this.outPorts.every(st => st.subscriberCount() === 0);
 
-    if(insDone || outsDone) {
+    if (insDone || outsDone) {
       this.terminate();
     }
   }
@@ -101,7 +101,7 @@ abstract class BaseComponent<Ins extends any[], Outs extends any[]> implements C
     const outsDone = this.spec.outs.length === 0 ||
       this.outPorts.every(st => st.subscriberCount() === 0);
 
-    if(insDone && outsDone) {
+    if (insDone && outsDone) {
       Promise.all(this.inPorts.map(st => st.whenTerminated()))
         .then(() => Promise.all(this.outPorts.map(st => st.whenTerminated())))
         .then(() => this.whenTerminatedHandler.resolve());

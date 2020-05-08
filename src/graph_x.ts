@@ -1,9 +1,9 @@
 import Graph, { NodeSpec } from "./graph";
 
 type Scope = {
-  id: string,
-  graph: Graph,
-  vars: Set<string>
+  id: string;
+  graph: Graph;
+  vars: Set<string>;
 }
 
 class GraphX {
@@ -26,7 +26,7 @@ class GraphX {
     return { ins: [], outs: node.outs };
   }
 
-  addVarNode(moduleName: string | null, name: string, forceNew: boolean = false): NodeSpec {
+  addVarNode(moduleName: string | null, name: string, forceNew = false): NodeSpec {
     const currentScope = this.scopes[this.scopes.length - 1];
     currentScope.vars.add(name);
     const node = this.graph().addNode(

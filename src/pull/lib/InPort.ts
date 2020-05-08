@@ -1,15 +1,15 @@
-import {Publisher, Subscriber, Subscription} from "../types";
+import { Publisher, Subscriber, Subscription } from "../types";
 import AsyncJobStore from "../../util/AsyncJobStore";
 
 class InPort<T> implements Subscription {
   private name: string;
   private compSubscriber: Subscriber<T>;
-  private active: boolean = true;
+  private active = true;
   private asyncJobs: AsyncJobStore = new AsyncJobStore();
 
   private queue: T[] = [];
-  private demanded: number = 0;
-  private subscriptions: { ref: Subscription, demanded: number }[] = [];
+  private demanded = 0;
+  private subscriptions: { ref: Subscription; demanded: number }[] = [];
 
   constructor(name: string, s: Subscriber<T>) {
     this.name = name;
@@ -32,7 +32,7 @@ class InPort<T> implements Subscription {
         this.subscriptions
           .filter(s => localSubs.indexOf(s.ref) !== -1)
           .forEach(s => {
-            if(s.demanded === 0) {
+            if (s.demanded === 0) {
               throw new Error("Assertion error");
             }
             s.demanded--;
@@ -63,7 +63,7 @@ class InPort<T> implements Subscription {
   }
 
   request(n: number): void {
-    while(n > 0 && this.queue.length > 0) {
+    while (n > 0 && this.queue.length > 0) {
       this.compSubscriber.onNext(<T> this.queue.shift());
       n--;
     }

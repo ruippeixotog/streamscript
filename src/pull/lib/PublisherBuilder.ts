@@ -1,4 +1,4 @@
-import {Publisher, Subscriber} from "../types";
+import { Publisher, Subscriber } from "../types";
 
 class Map<T, U> implements Publisher<U> {
   private inner: Publisher<T>;
@@ -36,7 +36,7 @@ class Tap<T> implements Publisher<T> {
     this.inner.subscribe({
       onSubscribe: s0 => s.onSubscribe({
         request: n => { this.onRequest(n); s0.request(n); },
-        cancel: () => { this.onCancel(); s0.cancel() }
+        cancel: () => { this.onCancel(); s0.cancel(); }
       }),
       onNext: t => { this.sub.onNext(t); s.onNext(t); },
       onError: err => { this.sub.onError(err); s.onError(err); },

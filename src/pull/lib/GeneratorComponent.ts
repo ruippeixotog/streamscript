@@ -8,9 +8,9 @@ abstract class GeneratorComponent<Ins extends any[], Out> extends PromiseCompone
     const self = this;
     const inGenerators = this.spec.ins.map((name, i) =>
       async function*() {
-        while(true) {
+        while (true) {
           const { value, done } = await self.pullAsync(i);
-          if(done) return;
+          if (done) return;
           yield value;
         }
       }()

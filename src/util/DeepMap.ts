@@ -1,4 +1,4 @@
-import stableStringify from 'json-stable-stringify';
+import stableStringify from "json-stable-stringify";
 
 class DeepMap<K, V> implements Map<K, V> {
   inner: Map<string, V>;

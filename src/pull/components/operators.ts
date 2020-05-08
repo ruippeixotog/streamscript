@@ -1,5 +1,5 @@
 import PureComponent from "../lib/PureComponent";
-import {ComponentClass} from "../component_loader";
+import { ComponentClass } from "../component_loader";
 
 const UnOp = <A, T>(f: (a1: A) => T): ComponentClass =>
   class extends PureComponent<[A], T> {

@@ -1,4 +1,4 @@
-import stableStringify from 'json-stable-stringify';
+import stableStringify from "json-stable-stringify";
 
 class DeepSet<T> implements Set<T> {
   inner: Set<string>;

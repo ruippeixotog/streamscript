@@ -3,28 +3,28 @@ import DeepMap from "./util/DeepMap";
 import DeepSet from "./util/DeepSet";
 import { ComponentStore } from "./types";
 
-export type InPort = { nodeId: string, portName: string };
-export type OutPort = { nodeId: string, portName: string };
+export type InPort = { nodeId: string; portName: string };
+export type OutPort = { nodeId: string; portName: string };
 
 export type NodeImpl =
   { componentId: string } |
   { subgraphId: string }
 
 export type NodeSpec = {
-  ins: InPort[],
-  outs: OutPort[]
+  ins: InPort[];
+  outs: OutPort[];
 };
 
 export type ExternalInPort = {
-  portName: string,
-  innerPort: InPort,
-  implicit: boolean
+  portName: string;
+  innerPort: InPort;
+  implicit: boolean;
 };
 
 export type ExternalOutPort = {
-  portName: string,
-  innerPort: OutPort,
-  implicit: boolean
+  portName: string;
+  innerPort: OutPort;
+  implicit: boolean;
 };
 
 class Graph {
@@ -36,7 +36,7 @@ class Graph {
   externalIns: ExternalInPort[];
   externalOuts: ExternalOutPort[];
 
-  static VOID_NODE: string = "void";
+  static VOID_NODE = "void";
 
   constructor(componentStore: ComponentStore<any>) {
     this.componentStore = componentStore;
@@ -99,7 +99,7 @@ class Graph {
     }
   }
 
-  connectNodes(from: NodeSpec, to: NodeSpec, closeIns: boolean = true): NodeSpec {
+  connectNodes(from: NodeSpec, to: NodeSpec, closeIns = true): NodeSpec {
     util.assertConnectArity(from, to);
     for (let i = 0; i < to.ins.length; i++) {
       this.connectPorts(from.outs[i], to.ins[i]);
@@ -111,7 +111,7 @@ class Graph {
     return this.connectNodesMulti([from1, from2], to);
   }
 
-  connectNodesMulti(from: NodeSpec[], to: NodeSpec, closeIns: boolean = true): NodeSpec {
+  connectNodesMulti(from: NodeSpec[], to: NodeSpec, closeIns = true): NodeSpec {
     for (let k = 0; k < from.length; k++) {
       util.assertOutArity(1, from[k]);
     }
@@ -122,7 +122,7 @@ class Graph {
     return { ins: closeIns ? [] : from.map(e => e.ins[0]), outs: to.outs };
   }
 
-  connectNodesMultiFluid(from: NodeSpec[], to: NodeSpec, closeIns: boolean = true): NodeSpec {
+  connectNodesMultiFluid(from: NodeSpec[], to: NodeSpec, closeIns = true): NodeSpec {
     util.assertInArity(from.reduce((sum, e) => sum + e.outs.length, 0), to);
     let toIdx = 0;
     for (let k = 0; k < from.length; k++) {
@@ -143,11 +143,11 @@ class Graph {
     this.subgraphs.set(subgraphId, subgraph);
   }
 
-  addExternalIn(portName: string, innerPort: InPort, implicit: boolean = false): void {
+  addExternalIn(portName: string, innerPort: InPort, implicit = false): void {
     this.externalIns.push({ portName, innerPort, implicit });
   }
 
-  addExternalOut(portName: string, innerPort: OutPort, implicit: boolean = false): void {
+  addExternalOut(portName: string, innerPort: OutPort, implicit = false): void {
     this.externalOuts.push({ portName, innerPort, implicit });
   }
 

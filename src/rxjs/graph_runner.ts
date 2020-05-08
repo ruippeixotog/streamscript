@@ -13,11 +13,11 @@ function toComponent(graph: Graph, logger: Logger, graphName?: string): Componen
       outs: graph.externalOuts.map(p => p.portName),
     },
     connect: (...externalIns) => {
-      let componentStore: ComponentStore<Component> = graph.componentStore;
+      const componentStore: ComponentStore<Component> = graph.componentStore;
 
-      let activateFuncs: (() => Subscription | null)[] = [];
-      let inObservables = new DeepMap<InPort, Observable<any>[]>();
-      let outSubjects = new DeepMap<OutPort, Subject<any>>();
+      const activateFuncs: (() => Subscription | null)[] = [];
+      const inObservables = new DeepMap<InPort, Observable<any>[]>();
+      const outSubjects = new DeepMap<OutPort, Subject<any>>();
 
       function inObservablesFor(port: InPort): Observable<any>[] {
         return inObservables.getOrElseSet(port, () => []);

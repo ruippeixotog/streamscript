@@ -1,14 +1,14 @@
 import Graph from "../graph";
-import {ComponentStore} from "../types";
-import {Component, Publisher, Subscriber} from "./types";
-import {ComponentClass} from "./component_loader";
-import {Single} from "./components/core";
+import { ComponentStore } from "../types";
+import { Component, Publisher, Subscriber } from "./types";
+import { ComponentClass } from "./component_loader";
+import { Single } from "./components/core";
 import Builder from "./lib/PublisherBuilder";
 import Logger from "./Logger";
 
 function toComponent(graph: Graph, logger: Logger, graphName?: string): Component<any[], any[]> {
-  let componentStore: ComponentStore<ComponentClass> = graph.componentStore;
-  let nodeComponents: { [nodeId: string]: Component<any, any> } = {};
+  const componentStore: ComponentStore<ComponentClass> = graph.componentStore;
+  const nodeComponents: { [nodeId: string]: Component<any, any> } = {};
 
   graph.nodes.forEach((nodeImpl, nodeId) => {
     nodeComponents[nodeId] =

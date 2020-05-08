@@ -1,4 +1,4 @@
-import {ComponentSpec} from "../types";
+import { ComponentSpec } from "../types";
 
 export interface Publisher<T> {
   subscribe<S extends T>(s: Subscriber<S>): void;
