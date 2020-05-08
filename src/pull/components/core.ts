@@ -31,61 +31,166 @@ export class Single<T> extends BaseComponent<[], [T]> {
 }
 
 export class Repeat<T> extends BaseComponent<[], [T]> {
-  static spec = { ins: [], outs: ["out"] };
+  static spec = { ins: ["in"], outs: ["out"] };
 
-  repValue: T;
+  repValue?: T;
 
-  constructor(repValue: T) {
-    super();
-    this.repValue = repValue;
+  onNext<K extends number & keyof []>(idx: K, value: never): void {
+    this.repValue = value;
+    this.onRequest(0, this.outPort(0).requested());
+    this.inPort(0).request(1);
   }
 
-  onNext<K extends number & keyof []>(idx: K, value: never): void {}
-
   onRequest<K extends number & keyof [T]>(idx: K, n: number): void {
-    this.outPort(idx).send(this.repValue);
+    if (this.repValue !== undefined) {
+      for(let i = 0; i < n; i++) {
+        this.outPort(idx).send(this.repValue);
+      }
+    }
+  }
+
+  onComplete(idx: number) {
+    if(this.repValue === undefined) {
+      super.onComplete(idx);
+    }
+  }
+
+  start(): void {
+    super.start();
+    this.inPort(0).request(1);
   }
 }
 
-// // export const Kick = fanIn<any, any>((sig, data) => zip(...[sig, data], (_, d) => d));
-//
-// // export const Delay = fanIn2<any, number, any>((input, delayIn) =>
-// //   input.pipe(
-// //     withLatestFrom(delayIn),
-// //     flatMap((x, d) => of(x).pipe(delay(d)))
-// //   )
-// // );
-//
-// // export const Delay = fanIn2<any, number, any>(async function*(input, delayIn) {
-// //   let { done: delayDone, value: p } = await delayIn.next();
-// //   if (delayDone) return;
-// //
-// //   let nextDelay = delayIn.next();
-// //   let nextInput = input.next();
-// //   let nextSend = input
-// //
-// //   let scheduleSend = e => new Promise(cb => setTimeout(_ => cb(e), p));
-// //
-// //   let count = 0;
-// //   while (true) {
-// //     const [idx, ev] = await Promise.race([
-// //       nextDelay.then(e => [0, e]),
-// //       nextInput.then(e => [1, e])
-// //     ]);
-// //
-// //     if (idx === 0) {
-// //       if (ev.done) {
-// //         nextDelay = new Promise(() => {});
-// //       } else {
-// //         p = ev.value;
-// //         nextDelay = period.next();
-// //       }
-// //     } else {
-// //       yield count++;
-// //     }
-// //   }
-// // });
-//
+export class Kick<T> extends BaseComponent<[any, T], [T]> {
+  static spec = { ins: ["sig", "data"], outs: ["out"] };
+
+  private data?: T;
+
+  onNext<K extends number & keyof [any, T]>(idx: K, value: T): void {
+    if(idx === 1) {
+      this.data = value;
+      this.inPort(1).request(1);
+    } else if (this.data) {
+      this.outPort(0).send(this.data);
+    }
+  }
+
+  onRequest<K extends number & keyof [T]>(idx: K, n: number): void {
+    this.inPort(0).request(n);
+  }
+
+  start(): void {
+    super.start();
+    this.inPort(1).request(1);
+  }
+}
+
+export class Interval extends BaseComponent<[number], [number]> {
+  static spec = { ins: ["period"], outs: ["out"] };
+
+  private currPeriod?: number;
+  private demand: number = 0;
+  private next: number = 0;
+  private ready: boolean = false;
+
+  onNext<K extends number & keyof [number]>(idx: K, value: number): void {
+    if(this.currPeriod === undefined) {
+      this.schedule(value);
+    }
+    this.currPeriod = value;
+    this.inPort(0).request(1);
+  }
+
+  onRequest<K extends number & keyof [number]>(idx: K, n: number): void {
+    this.demand += n;
+    if(this.ready) {
+      this.onReady();
+      this.ready = false;
+    }
+  }
+
+  schedule(period?: number) {
+    if(period === undefined) {
+      return;
+    }
+    setTimeout(() => this.onReady(), period);
+  }
+
+  onReady() {
+    if(this.demand > 0) {
+      this.outPort(0).send(this.next++);
+      this.demand--;
+      this.schedule(this.currPeriod);
+    } else {
+      this.ready = true;
+    }
+  }
+
+  onComplete(idx: number) {
+    if(this.currPeriod === undefined) {
+      super.onComplete(idx);
+    }
+  }
+
+  start(): void {
+    super.start();
+    this.inPort(0).request(1);
+  }
+}
+
+export class If<T> extends BaseComponent<[boolean, T, T], [T]> {
+  static spec = { ins: ["cond", "then", "else"], outs: ["out"] };
+
+  onNext<K extends number & keyof [boolean, T, T]>(idx: K, value: boolean | T): void {
+    if(idx === 0) {
+      this.inPort(value ? 1 : 2).request(1);
+    } else {
+      this.outPort(0).send(<T> value);
+    }
+  }
+
+  onRequest<K extends number & keyof [T]>(idx: K, n: number): void {
+    this.inPort(0).request(n);
+  }
+}
+
+export class Buffer<T> extends BaseComponent<[T, number], [T]> {
+  static spec = { ins: ["in", "n"], outs: ["out"] };
+
+  private bufSize: number = 0;
+  private buffer: T[] = [];
+
+  onNext<K extends number & keyof [T, number]>(idx: number, value: T | number): void {
+    if(idx === 1) {
+      this.bufSize = <number> value;
+      this.inPort(1).request(1);
+    } else {
+      if(this.outPort(0).requested() == 0) this.buffer.push(<T> value);
+      else this.outPort(0).send(<T> value);
+    }
+    this.adjustDemanded();
+  }
+
+  onRequest<K extends number & keyof [T]>(idx: number, n: number): void {
+    while(n > 0 && this.buffer.length > 0) {
+      this.outPort(0).send(<T> this.buffer.shift());
+      n--;
+    }
+    this.adjustDemanded();
+  }
+
+  adjustDemanded(): void {
+    if(this.inPort(0).requested() < this.outPort(0).requested() + this.bufSize) {
+      this.inPort(0).request(this.outPort(0).requested() - this.inPort(0).requested() + this.bufSize);
+    }
+  }
+
+  start(): void {
+    super.start();
+    this.inPort(1).request(1);
+  }
+}
+
 // export const ToArray = flow<any, any[]>(async function*(input) {
 //   const arr: any[] = [];
 //   for await (const e of input) {
@@ -102,77 +207,6 @@ export class Repeat<T> extends BaseComponent<[], [T]> {
 //   }
 // });
 //
-// // export const Interval = flow<number, number>(async function*(period) {
-// //   let { done: periodDone, value: p } = await period.next();
-// //   if (periodDone) return;
-// //
-// //   let nextPeriod = period.next();
-// //   const schedulePing = () => new Promise(cb => setTimeout(cb, p));
-// //
-// //   let count = 0;
-// //   while (true) {
-// //     const [idx, ev] = await Promise.race([
-// //       nextPeriod.then<[number, IteratorResult<number>]>(e => [0, e]),
-// //       schedulePing().then<[number, IteratorResult<any>]>(e => [1, e])
-// //     ]);
-// //
-// //     if (idx === 0) {
-// //       if (ev.done) {
-// //         nextPeriod = new Promise(() => {});
-// //       } else {
-// //         p = ev.value;
-// //         nextPeriod = period.next();
-// //       }
-// //     } else {
-// //       yield count++;
-// //     }
-// //   }
-// // });
-//
-// export const If = fanIn3<boolean, any, any, any>(async function*(cond, then, els) {
-//   let { done: flipDone, value: flip } = await cond.next();
-//   if (flipDone) return;
-//
-//   let nextCond = cond.next();
-//   let nextThen = then.next();
-//   let nextElse = els.next();
-//   let condDone = false;
-//   let thenDone = false;
-//   let elseDone = false;
-//
-//   while (!condDone || !(flip ? thenDone : elseDone)) {
-//     const [idx, ev] = await Promise.race([
-//       nextCond.then<[number, IteratorResult<boolean>]>(e => [0, e]),
-//       (flip ? nextThen : nextElse).then<[number, IteratorResult<any>]>(e => [1, e]),
-//     ]);
-//
-//     if (idx === 0) {
-//       if (ev.done) {
-//         condDone = true;
-//         nextCond = new Promise(() => {});
-//       } else {
-//         flip = ev.value;
-//         nextCond = cond.next();
-//       }
-//     } else if (flip) {
-//       if (ev.done) {
-//         thenDone = true;
-//         nextThen = new Promise(() => {});
-//       } else {
-//         yield ev.value;
-//         nextThen = then.next();
-//       }
-//     } else {
-//       if (ev.done) {
-//         elseDone = true;
-//         nextElse = new Promise(() => {});
-//       } else {
-//         yield ev.value;
-//         nextElse = els.next();
-//       }
-//     }
-//   }
-// });
 //
 // // export const CombineLatest = pipe(2, 2, (arg1, arg2) => {
 // //   const latest = combineLatest([arg1, arg2]);
