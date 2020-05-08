@@ -102,7 +102,9 @@ abstract class BaseComponent<Ins extends any[], Outs extends any[]> implements C
       this.outPorts.every(st => st.subscriberCount() === 0);
 
     if(insDone && outsDone) {
-      this.whenTerminatedHandler.resolve();
+      Promise.all(this.inPorts.map(st => st.whenTerminated()))
+        .then(() => Promise.all(this.outPorts.map(st => st.whenTerminated())))
+        .then(() => this.whenTerminatedHandler.resolve());
     }
   }
 }

@@ -1,10 +1,12 @@
 import {Publisher, Subscriber, Subscription} from "../types";
 import Deferred from "../../util/Deferred";
+import AsyncJobStore from "../../util/AsyncJobStore";
 
 class OutPort<T> implements Publisher<T> {
   private name: string;
   private compSubscription: Subscription;
   private active: boolean = true;
+  private asyncJobs: AsyncJobStore = new AsyncJobStore();
 
   private demand: number = 0;
   private subscribers: { ref: Subscriber<T>, demand: number }[] = [];
@@ -42,7 +44,7 @@ class OutPort<T> implements Publisher<T> {
           }
         },
         cancel: () => {
-          setImmediate(() => subscriber.onComplete());
+          this.asyncJobs.add(() => subscriber.onComplete());
           const newSubscribers = this.subscribers =
             this.subscribers.filter(s0 => s0.ref !== subscriber);
 
@@ -57,7 +59,7 @@ class OutPort<T> implements Publisher<T> {
     if(!this.active || this.demand <= 0) {
       throw new Error("Illegal send on out port");
     }
-    this.subscribers.forEach(s => setImmediate(() => s.ref.onNext(t)));
+    this.subscribers.forEach(s => this.asyncJobs.add(() => s.ref.onNext(t)));
     this.demand--;
   }
 
@@ -65,7 +67,8 @@ class OutPort<T> implements Publisher<T> {
     // if(!this.active) {
     //   throw new Error("Illegal complete on out port");
     // }
-    this.subscribers.forEach(s => setImmediate(() => s.ref.onComplete()));
+    this.subscribers.forEach(s => this.asyncJobs.add(() => s.ref.onComplete()));
+    this.asyncJobs.drain();
     this.subscribers = [];
     this.active = false;
   }
@@ -75,8 +78,21 @@ class OutPort<T> implements Publisher<T> {
       throw new Error("Illegal error on out port");
     }
     this.subscribers.forEach(s => s.ref.onError(e));
+    this.asyncJobs.drain();
     this.subscribers = [];
     this.active = false;
+  }
+
+  sendAsync(promise: Promise<IteratorResult<T>>): void {
+    this.asyncJobs.addAsync(() =>
+      promise
+        .then(v => v.done ? this.complete() : this.send(v.value))
+        .catch(err => this.error(err))
+    );
+  }
+
+  whenTerminated(): Promise<any> {
+    return this.asyncJobs.whenDrained();
   }
 }
 

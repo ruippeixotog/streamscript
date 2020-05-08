@@ -78,7 +78,7 @@ function toComponent(graph: Graph, logger: Logger, graphName?: string): Componen
 }
 
 async function runGraph(graph: Graph): Promise<any> {
-  const logger = new Logger("out/packets");
+  const logger = new Logger("out/packets.log");
   const comp = toComponent(graph, logger);
   comp.start();
   await comp.whenTerminated();

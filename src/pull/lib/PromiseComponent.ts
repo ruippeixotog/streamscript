@@ -3,7 +3,6 @@ import Deferred from "../../util/Deferred";
 
 abstract class PromiseComponent<Ins extends any[], Out> extends BaseComponent<Ins, [Out]> {
   private inPromises: Deferred<IteratorResult<Ins[number]>>[][];
-  private pendingOutPromises: Set<Promise<void>> = new Set();
   private outCancelled: boolean = false;
 
   constructor() {
@@ -36,17 +35,7 @@ abstract class PromiseComponent<Ins extends any[], Out> extends BaseComponent<In
 
   onRequest(idx: number, n: number): void {
     for(let i = 0; i < n; i++) {
-      const outPromise =
-        this.processAsync()
-          .then(v => {
-            if(!this.outCancelled) {
-              v.done ? this.outPort(idx).complete() : this.outPort(idx).send(v.value)
-            }
-          })
-          .catch(err => this.outPort(idx).error(err))
-          .finally(() => this.pendingOutPromises.delete(outPromise));
-
-      this.pendingOutPromises.add(outPromise);
+      this.outPort(idx).sendAsync(this.processAsync());
     }
   }
 
@@ -56,9 +45,7 @@ abstract class PromiseComponent<Ins extends any[], Out> extends BaseComponent<In
   }
 
   terminate(): void {
-    // super.terminate();
-    Promise.all(Array.from(this.pendingOutPromises))
-      .finally(() => super.terminate());
+    super.terminate();
   }
 }
 

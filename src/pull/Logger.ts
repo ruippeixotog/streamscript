@@ -8,18 +8,22 @@ class Logger {
 
   constructor(filePrefix: string) {
     this.filePrefix = filePrefix;
-    this.out = fs.createWriteStream(`${filePrefix}.log`);
+    this.out = fs.createWriteStream(filePrefix);
   }
 
   edgeSubscriber(from: OutPort, to: InPort, graphName?: string): [Subscriber<any>, (n: number) => void, () => void] {
     return this._baseEdgeSubscriber(
-      `EDGE ${graphName ? `<<${graphName}>> ` : ""}${from.nodeId}[${from.portName}] -> ${to.nodeId}[${to.portName}]: `
+      `${from.nodeId}[${from.portName}]`,
+      `${to.nodeId}[${to.portName}]`,
+      graphName
     );
   }
 
   edgeInitialSubscriber(initial: any, port: InPort, graphName?: string): [Subscriber<any>, (n: number) => void, () => void] {
     return this._baseEdgeSubscriber(
-      `EDGE ${graphName ? `<<${graphName}>> ` : ""}INITIAL(${JSON.stringify(initial)}) -> ${port.nodeId}[${port.portName}]: `
+      `INITIAL(${JSON.stringify(initial)})`,
+      `${port.nodeId}[${port.portName}]`,
+      graphName
     );
   }
 
@@ -28,15 +32,18 @@ class Logger {
     return () => this.out.write(prefix + "TERMINATED\n");
   }
 
-  private _baseEdgeSubscriber(prefix: string): [Subscriber<any>, (n: number) => void, () => void] {
+  private _baseEdgeSubscriber(from: string, to: string, graphName?: string): [Subscriber<any>, (n: number) => void, () => void] {
+    const prefix = `EDGE ${graphName ? `<<${graphName}>> ` : ""}${from} -> ${to}: `;
+    const revPrefix = `EDGE ${graphName ? `<<${graphName}>> ` : ""}${to} -> ${from}: `;
+
     const sub = {
       onSubscribe: () => {},
       onNext: ev => this.out.write(prefix + `DATA ${JSON.stringify(ev)}\n`),
       onError: err => this.out.write(prefix + `ERROR ${err}\n`),
       onComplete: () => this.out.write(prefix + "COMPLETE\n")
     };
-    const onRequest = n => this.out.write(prefix + `REQUEST ${n}\n`);
-    const onCancel = () => this.out.write(prefix + "CANCEL\n");
+    const onRequest = n => this.out.write(revPrefix + `REQUEST ${n}\n`);
+    const onCancel = () => this.out.write(revPrefix + "CANCEL\n");
 
     return [sub, onRequest, onCancel];
   }

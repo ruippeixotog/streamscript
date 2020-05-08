@@ -1,9 +1,11 @@
 import {Publisher, Subscriber, Subscription} from "../types";
+import AsyncJobStore from "../../util/AsyncJobStore";
 
 class InPort<T> implements Subscription {
   private name: string;
   private compSubscriber: Subscriber<T>;
   private active: boolean = true;
+  private asyncJobs: AsyncJobStore = new AsyncJobStore();
 
   private queue: T[] = [];
   private demanded: number = 0;
@@ -65,21 +67,26 @@ class InPort<T> implements Subscription {
       this.compSubscriber.onNext(<T> this.queue.shift());
       n--;
     }
-    if (!this._maybeComplete()) {
-      const innerDemanded = this.demanded += n;
-      this.subscriptions
-        .filter(s => s.demanded < innerDemanded)
-        .forEach(s =>
-          setImmediate(() => {
+    this.asyncJobs.add(() => {
+      if (!this._maybeComplete()) {
+        const innerDemanded = this.demanded += n;
+        this.subscriptions
+          .filter(s => s.demanded < innerDemanded)
+          .forEach(s => {
             s.ref.request(innerDemanded - s.demanded);
             s.demanded = innerDemanded;
-          })
-        );
-    }
+          });
+      }
+    });
   }
 
   cancel(): void {
-    this.subscriptions.forEach(s => setImmediate(() => s.ref.cancel()));
+    this.subscriptions.forEach(s => this.asyncJobs.add(() => s.ref.cancel()));
+    this.asyncJobs.drain();
+  }
+
+  whenTerminated(): Promise<any> {
+    return this.asyncJobs.whenDrained();
   }
 
   private _maybeComplete() {
