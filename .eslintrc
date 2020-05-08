@@ -1,7 +1,15 @@
 {
   "root": true,
-  "parser": "babel-eslint",
-  "extends": "eslint:recommended",
+  "parser": "@typescript-eslint/parser",
+  "extends": [
+    "eslint:recommended",
+    "plugin:@typescript-eslint/eslint-recommended",
+    "plugin:@typescript-eslint/recommended"
+  ],
+
+  "plugins": [
+    "@typescript-eslint"
+  ],
 
   "env": {
     "es6": true,
@@ -34,9 +42,5 @@
     "no-console": 0,
 
     "no-unused-vars": 0
-  },
-  "globals": {
-    "AsyncGenerator": true,
-    "IteratorResult": true
   }
 }
