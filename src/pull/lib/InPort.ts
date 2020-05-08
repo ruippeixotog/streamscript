@@ -80,6 +80,10 @@ class InPort<T> implements Subscription {
     });
   }
 
+  requested(): number {
+    return this.demanded;
+  }
+
   cancel(): void {
     this.subscriptions.forEach(s => this.asyncJobs.add(() => s.ref.cancel()));
     this.asyncJobs.drain();

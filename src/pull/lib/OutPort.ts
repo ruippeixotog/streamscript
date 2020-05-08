@@ -55,6 +55,10 @@ class OutPort<T> implements Publisher<T> {
       });
   }
 
+  requested(): number {
+    return this.demand;
+  }
+
   send(t: T): void {
     if(!this.active || this.demand <= 0) {
       throw new Error("Illegal send on out port");
