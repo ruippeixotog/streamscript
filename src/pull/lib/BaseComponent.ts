@@ -3,8 +3,9 @@ import { Component, Publisher, Subscriber } from "../types";
 import Deferred from "../../util/Deferred";
 import OutPort from "./OutPort";
 import InPort from "./InPort";
+import { ComponentClass } from "../component_loader";
 
-abstract class BaseComponent<Ins extends any[], Outs extends any[]> implements Component<Ins, Outs> {
+abstract class BaseComponent<Ins extends unknown[], Outs extends unknown[]> implements Component<Ins, Outs> {
   static readonly spec: ComponentSpec;
 
   private inPorts: InPort<Outs[number]>[];
@@ -46,7 +47,7 @@ abstract class BaseComponent<Ins extends any[], Outs extends any[]> implements C
   }
 
   get spec(): ComponentSpec {
-    return (<any> this.constructor).spec;
+    return (this.constructor as ComponentClass).spec;
   }
 
   start(): void {
@@ -59,7 +60,7 @@ abstract class BaseComponent<Ins extends any[], Outs extends any[]> implements C
     this.outPorts.forEach(port => port.complete());
   }
 
-  whenTerminated(): Promise<any> {
+  whenTerminated(): Promise<unknown> {
     return this.whenTerminatedHandler.promise;
   }
 
@@ -84,7 +85,7 @@ abstract class BaseComponent<Ins extends any[], Outs extends any[]> implements C
     this.outPorts.forEach(port => port.error(err));
   }
 
-  _checkTermination() {
+  _checkTermination(): void {
     const insDone = this.spec.ins.length > 0 &&
       this.inPorts.every(st => st.subscriptionCount() === 0);
     const outsDone = this.spec.outs.length > 0 &&
@@ -95,7 +96,7 @@ abstract class BaseComponent<Ins extends any[], Outs extends any[]> implements C
     }
   }
 
-  _checkIfTerminated() {
+  _checkIfTerminated(): void {
     const insDone = this.spec.ins.length === 0 ||
       this.inPorts.every(st => st.subscriptionCount() === 0);
     const outsDone = this.spec.outs.length === 0 ||

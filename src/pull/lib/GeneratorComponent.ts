@@ -1,10 +1,11 @@
 import PromiseComponent from "./PromiseComponent";
 
-abstract class GeneratorComponent<Ins extends any[], Out> extends PromiseComponent<Ins, Out> {
+abstract class GeneratorComponent<Ins extends unknown[], Out> extends PromiseComponent<Ins, Out> {
   generator: AsyncGenerator<Out>;
 
   constructor() {
     super();
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
     const self = this;
     const inGenerators = this.spec.ins.map((name, i) =>
       async function*() {

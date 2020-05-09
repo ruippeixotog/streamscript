@@ -1,7 +1,7 @@
 import Graph from "./graph";
 import graphviz from "graphviz";
 
-export function print(graph: Graph) {
+export function print(graph: Graph): void {
   console.log("Nodes:");
   graph.nodes.forEach((v, k) => console.log(k, "->", v));
   console.log("Edges:");
@@ -17,7 +17,7 @@ export function print(graph: Graph) {
 }
 
 function toGraphvizGraph(graph: Graph): graphviz.Graph {
-  const sanitize = nodeId => nodeId.replace(/"/g, '\\"');
+  const sanitize = (nodeId: string): string => nodeId.replace(/"/g, '\\"');
 
   const g = graphviz.digraph("G");
   graph.nodes.forEach((_, nodeId) =>

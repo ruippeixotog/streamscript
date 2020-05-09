@@ -93,8 +93,8 @@ function compileGraph(
         }
         if (func.name === "extern") {
           assert.equal(1, args.length, "`extern` should be called with a single argument");
-          assert.equal("string", typeof (<any> args[0]).value, "`extern` can only be called with a literal string");
-          return graphX.addExternNode((<any> args[0]).value, uuid);
+          assert.equal("string", typeof (args[0] as { value?: unknown }).value, "`extern` can only be called with a literal string");
+          return graphX.addExternNode((args[0] as { value: string }).value, uuid);
         }
         const node = graphX.addFunctionNode(func.moduleName ?? thisModuleName, func.name, uuid);
         util.assertInArity(args.length, node);

@@ -6,9 +6,9 @@ import { Single } from "./components/core";
 import Builder from "./lib/PublisherBuilder";
 import Logger from "./Logger";
 
-function toComponent(graph: Graph, logger: Logger, graphName?: string): Component<any[], any[]> {
-  const componentStore: ComponentStore<ComponentClass> = graph.componentStore;
-  const nodeComponents: { [nodeId: string]: Component<any, any> } = {};
+function toComponent(graph: Graph, logger: Logger, graphName?: string): Component<unknown[], unknown[]> {
+  const componentStore = graph.componentStore as ComponentStore<ComponentClass>;
+  const nodeComponents: { [nodeId: string]: Component<unknown[], unknown[]> } = {};
 
   graph.nodes.forEach((nodeImpl, nodeId) => {
     nodeComponents[nodeId] =
@@ -69,7 +69,7 @@ function toComponent(graph: Graph, logger: Logger, graphName?: string): Componen
       Object.entries(nodeComponents).forEach(([_, comp]) => comp.terminate());
     },
 
-    whenTerminated(): Promise<any> {
+    whenTerminated(): Promise<unknown> {
       return Promise.all(
         Object.entries(nodeComponents).map(([_, comp]) => comp.whenTerminated())
       );
@@ -77,7 +77,7 @@ function toComponent(graph: Graph, logger: Logger, graphName?: string): Componen
   };
 }
 
-async function runGraph(graph: Graph): Promise<any> {
+async function runGraph(graph: Graph): Promise<void> {
   const logger = new Logger("out/packets.log");
   const comp = toComponent(graph, logger);
   comp.start();

@@ -6,7 +6,7 @@ import compiler from "./graph_compiler";
 import printer from "./graph_printer";
 import Graph from "./graph";
 
-async function runFile(filename: string): Promise<any> {
+async function runFile(filename: string): Promise<void> {
   console.log(`parsing ${filename}...`);
   const ast = parser.parseFile(filename);
 

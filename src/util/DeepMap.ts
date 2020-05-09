@@ -20,8 +20,8 @@ class DeepMap<K, V> implements Map<K, V> {
   delete(key: K): boolean {
     return this.inner.delete(stableStringify(key));
   }
-  forEach(callbackfn: (value: V, key: K, map: Map<K, V>) => void, thisArg?: any): void {
-    return this.inner.forEach((value, key, _) => callbackfn(value, JSON.parse(key), this), thisArg);
+  forEach(callbackfn: (value: V, key: K, map: Map<K, V>) => void, thisArg?: unknown): void {
+    return this.inner.forEach((value, key) => callbackfn(value, JSON.parse(key), this), thisArg);
   }
   get(key: K): V | undefined {
     return this.inner.get(stableStringify(key));

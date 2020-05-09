@@ -1,6 +1,6 @@
 import PromiseComponent from "./PromiseComponent";
 
-abstract class PureComponent<Ins extends any[], Out> extends PromiseComponent<Ins, Out> {
+abstract class PureComponent<Ins extends unknown[], Out> extends PromiseComponent<Ins, Out> {
 
   abstract process(...args: Ins): Out;
 

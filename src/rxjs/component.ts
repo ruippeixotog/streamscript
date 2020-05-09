@@ -2,6 +2,7 @@ import { Observable, Subscription, zip } from "rxjs";
 import { map } from "rxjs/operators";
 import { ComponentSpec } from "../types";
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
 export type Component = {
   spec: ComponentSpec;
   connect: (...args: Observable<any>[]) => {
@@ -17,6 +18,17 @@ export type FanIn2<A1, A2, U> = (arg1: Observable<A1>, arg2: Observable<A2>) => 
 export type FanIn3<A1, A2, A3, U> = (arg1: Observable<A1>, arg2: Observable<A2>, arg3: Observable<A2>) => Observable<U>;
 export type Pipe = (...args: Observable<any>[]) => Observable<any>[];
 export type Sink<T> = (arg: Observable<T>) => Subscription;
+
+export function pipe(inCount: number, outCount: number, pipe: Pipe): Component {
+  return {
+    spec: {
+      ins: Array(inCount).fill(null).map((_, i) => `in${i}`),
+      outs: Array(outCount).fill(null).map((_, i) => `out${i}`),
+    },
+    connect: (...args) => ({ outs: pipe(...args), activate: () => null })
+  };
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 export function source<T>(source: Source<T>): Component {
   return pipe(0, 1, () => [source()]);
@@ -36,16 +48,6 @@ export function fanIn2<A1, A2, U>(fanIn: FanIn2<A1, A2, U>): Component {
 
 export function fanIn3<A1, A2, A3, U>(fanIn: FanIn3<A1, A2, A3, U>): Component {
   return pipe(3, 1, (arg1, arg2, arg3) => [fanIn(arg1, arg2, arg3)]);
-}
-
-export function pipe(inCount: number, outCount: number, pipe: Pipe): Component {
-  return {
-    spec: {
-      ins: Array(inCount).fill(null).map((_, i) => `in${i}`),
-      outs: Array(outCount).fill(null).map((_, i) => `out${i}`),
-    },
-    connect: (...args) => ({ outs: pipe(...args), activate: () => null })
-  };
 }
 
 export function sink<T>(sink: Sink<T>): Component {

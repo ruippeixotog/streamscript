@@ -1,5 +1,6 @@
 import { pureFanIn, pureFlow } from "../component";
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
 export const Or = pureFanIn<any, any>((a1, a2) => a1 || a2);
 export const And = pureFanIn<any, any>((a1, a2) => a1 && a2);
 export const Lte = pureFanIn<any, any>((a1, a2) => a1 <= a2);
@@ -19,3 +20,4 @@ export const Not = pureFlow<any, any>(a1 => !a1);
 
 export const ArrayPush = pureFanIn<any, any>((arr, elem) => [...arr, elem]);
 export const SetPropertyValue = pureFanIn<any, any>((k, v, obj) => ({ ...obj, [k]: v }));
+/* eslint-enable @typescript-eslint/no-explicit-any */

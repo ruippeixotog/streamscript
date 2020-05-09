@@ -7,8 +7,9 @@ const semantics = grammar.createSemantics();
 
 let nodeNumber = 0;
 
-function lift(func) {
-  const liftedFunc = (...args) => func(...args.map(a => a.ast));
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function lift<T>(func: (...args: any[]) => T): (...args: ohm.Node[]) => T {
+  const liftedFunc = (...args): T => func(...args.map(a => a.ast));
   // ohm checks if the action functions have the correct number of arguments, so we need to
   // propagate the original arity to the lifted function
   Object.defineProperty(liftedFunc, "length", { value: func.length });
@@ -19,7 +20,8 @@ function astNode<T>(type: SSNodeType, data: T): { uuid: string; type: SSNodeType
   return { uuid: (++nodeNumber).toString(), type, ...data };
 }
 
-semantics.addAttribute("ast", { /* eslint-disable no-unused-vars, camelcase */
+/* eslint-disable @typescript-eslint/camelcase */
+semantics.addAttribute("ast", {
   Module: lift(stmts => astNode("Module", { stmts })),
   Import: lift((_, moduleName) => astNode("Import", { moduleName })),
   FunDecl: lift((funName, funDef) => astNode("FunDecl", { funName, funDef })),
@@ -70,8 +72,7 @@ semantics.addAttribute("ast", { /* eslint-disable no-unused-vars, camelcase */
 
   _terminal: function () { return this.primitiveValue; }
 });
-
-// import util from "util";
+/* eslint-enable @typescript-eslint/camelcase */
 
 function parse(moduleContent: string): SSNode {
   const match = grammar.match(moduleContent);
@@ -79,7 +80,7 @@ function parse(moduleContent: string): SSNode {
     console.error(match.message);
     throw new Error("Unable to parse module");
   }
-  // console.log(util.inspect(semantics(match).ast, { showHidden: false, depth: null }));
+  // console.log(require("util").inspect(semantics(match).ast, { showHidden: false, depth: null }));
   return semantics(match).ast;
 }
 

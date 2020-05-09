@@ -13,6 +13,7 @@ const BinOp = <A1, A2, T>(f: (a1: A1, a2: A2) => T): ComponentClass =>
     process = f;
   };
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
 export const Or = BinOp((a1: any, a2: any) => a1 || a2);
 export const And = BinOp((a1: any, a2: any) => a1 && a2);
 export const Lte = BinOp((a1: any, a2: any) => a1 <= a2);
@@ -29,9 +30,11 @@ export const Modulo = BinOp((a1: any, a2: any) => a1 % a2);
 
 export const Negate = UnOp((a1: any) => -a1);
 export const Not = UnOp((a1: any) => !a1);
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
-export const ArrayPush = BinOp((arr: any[], elem: any) => [...arr, elem]);
-export class SetPropertyValue extends PureComponent<[string, any, {}], {}> {
+export const ArrayPush = BinOp((arr: unknown[], elem: unknown) => [...arr, elem]);
+
+export class SetPropertyValue extends PureComponent<[string, unknown, {}], {}> {
   static spec = { ins: ["key", "value", "obj"], outs: ["out"] };
-  process = (k: string, v: any, obj: {}) => ({ ...obj, [k]: v });
+  process = (k: string, v: unknown, obj: {}): {} => ({ ...obj, [k]: v });
 }

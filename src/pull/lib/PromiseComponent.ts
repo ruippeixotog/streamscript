@@ -1,13 +1,13 @@
 import BaseComponent from "./BaseComponent";
 import Deferred from "../../util/Deferred";
 
-abstract class PromiseComponent<Ins extends any[], Out> extends BaseComponent<Ins, [Out]> {
+abstract class PromiseComponent<Ins extends unknown[], Out> extends BaseComponent<Ins, [Out]> {
   private inPromises: Deferred<IteratorResult<Ins[number]>>[][];
   private outCancelled = false;
 
   constructor() {
     super();
-    this.inPromises = this.spec.ins.map(_ => []);
+    this.inPromises = this.spec.ins.map(() => []);
   }
 
   abstract processAsync(): Promise<IteratorResult<Out>>;

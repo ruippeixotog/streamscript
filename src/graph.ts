@@ -28,17 +28,17 @@ export type ExternalOutPort = {
 };
 
 class Graph {
-  componentStore: ComponentStore<any>;
+  componentStore: ComponentStore<unknown>;
   nodes: DeepMap<string, NodeImpl>;
   edges: DeepSet<[OutPort, InPort]>;
-  initials: DeepMap<InPort, any>;
+  initials: DeepMap<InPort, unknown>;
   subgraphs: DeepMap<string, Graph>;
   externalIns: ExternalInPort[];
   externalOuts: ExternalOutPort[];
 
   static VOID_NODE = "void";
 
-  constructor(componentStore: ComponentStore<any>) {
+  constructor(componentStore: ComponentStore<unknown>) {
     this.componentStore = componentStore;
     this.nodes = new DeepMap();
     this.edges = new DeepSet();
@@ -89,7 +89,7 @@ class Graph {
     }
   }
 
-  setInitial(port: InPort, value: any): void {
+  setInitial(port: InPort, value: unknown): void {
     this.initials.set(port, value);
   }
 

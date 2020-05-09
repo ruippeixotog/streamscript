@@ -1,4 +1,4 @@
-import { Publisher, Subscriber, Subscription } from "../types";
+import { Subscriber, Subscription } from "../types";
 import AsyncJobStore from "../../util/AsyncJobStore";
 
 class InPort<T> implements Subscription {
@@ -16,7 +16,7 @@ class InPort<T> implements Subscription {
     this.compSubscriber = s;
   }
 
-  subscriptionCount() {
+  subscriptionCount(): number {
     return this.subscriptions.length;
   }
 
@@ -64,7 +64,7 @@ class InPort<T> implements Subscription {
 
   request(n: number): void {
     while (n > 0 && this.queue.length > 0) {
-      this.compSubscriber.onNext(<T> this.queue.shift());
+      this.compSubscriber.onNext(this.queue.shift() as T);
       n--;
     }
     this.asyncJobs.add(() => {
@@ -89,11 +89,11 @@ class InPort<T> implements Subscription {
     this.asyncJobs.drain();
   }
 
-  whenTerminated(): Promise<any> {
+  whenTerminated(): Promise<unknown> {
     return this.asyncJobs.whenDrained();
   }
 
-  private _maybeComplete() {
+  private _maybeComplete(): boolean {
     if (this.active && this.subscriptions.length === 0 && this.queue.length === 0) {
       this.active = false;
       this.compSubscriber.onComplete();

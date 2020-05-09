@@ -2,9 +2,9 @@ import Deferred from "./Deferred";
 
 class AsyncJobStore {
   draining = false;
-  pendingJobs: Set<Promise<any>> = new Set();
+  pendingJobs: Set<Promise<unknown>> = new Set();
 
-  add(job: () => any) {
+  add(job: () => unknown): void {
     if (this.draining) {
       return;
     }
@@ -16,7 +16,7 @@ class AsyncJobStore {
     });
   }
 
-  addAsync(job: () => Promise<any>) {
+  addAsync(job: () => Promise<unknown>): void {
     if (this.draining) {
       return;
     }
@@ -29,7 +29,7 @@ class AsyncJobStore {
     this.draining = true;
   }
 
-  whenDrained(): Promise<any> {
+  whenDrained(): Promise<unknown> {
     if (!this.draining) {
       throw new Error("Job Store not being drained yet");
     }

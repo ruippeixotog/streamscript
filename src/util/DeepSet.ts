@@ -24,8 +24,8 @@ class DeepSet<T> implements Set<T> {
   delete(value: T): boolean {
     return this.inner.delete(stableStringify(value));
   }
-  forEach(callbackfn: (value: T, value2: T, set: Set<T>) => void, thisArg?: any): void {
-    return this.inner.forEach((value, value2, _) => callbackfn(JSON.parse(value), JSON.parse(value2), this), thisArg);
+  forEach(callbackfn: (value: T, value2: T, set: Set<T>) => void, thisArg?: unknown): void {
+    return this.inner.forEach((value, value2) => callbackfn(JSON.parse(value), JSON.parse(value2), this), thisArg);
   }
   has(key: T): boolean {
     return this.inner.has(stableStringify(key));

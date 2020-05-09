@@ -49,7 +49,7 @@ export class Repeat<T> extends BaseComponent<[], [T]> {
     }
   }
 
-  onComplete(idx: number) {
+  onComplete(idx: number): void {
     if (this.repValue === undefined) {
       super.onComplete(idx);
     }
@@ -61,12 +61,12 @@ export class Repeat<T> extends BaseComponent<[], [T]> {
   }
 }
 
-export class Kick<T> extends BaseComponent<[any, T], [T]> {
+export class Kick<T> extends BaseComponent<[unknown, T], [T]> {
   static spec = { ins: ["sig", "data"], outs: ["out"] };
 
   private data?: T;
 
-  onNext<K extends number & keyof [any, T]>(idx: K, value: T): void {
+  onNext<K extends number & keyof [unknown, T]>(idx: K, value: T): void {
     if (idx === 1) {
       this.data = value;
       this.inPort(1).request(1);
@@ -109,14 +109,14 @@ export class Interval extends BaseComponent<[number], [number]> {
     }
   }
 
-  schedule(period?: number) {
+  schedule(period?: number): void {
     if (period === undefined) {
       return;
     }
     setTimeout(() => this.onReady(), period);
   }
 
-  onReady() {
+  onReady(): void {
     if (this.demand > 0) {
       this.outPort(0).send(this.next++);
       this.demand--;
@@ -126,7 +126,7 @@ export class Interval extends BaseComponent<[number], [number]> {
     }
   }
 
-  onComplete(idx: number) {
+  onComplete(idx: number): void {
     if (this.currPeriod === undefined) {
       super.onComplete(idx);
     }
@@ -145,7 +145,7 @@ export class If<T> extends BaseComponent<[boolean, T, T], [T]> {
     if (idx === 0) {
       this.inPort(value ? 1 : 2).request(1);
     } else {
-      this.outPort(0).send(<T> value);
+      this.outPort(0).send(value as T);
     }
   }
 
@@ -162,18 +162,18 @@ export class Buffer<T> extends BaseComponent<[T, number], [T]> {
 
   onNext<K extends number & keyof [T, number]>(idx: number, value: T | number): void {
     if (idx === 1) {
-      this.bufSize = <number> value;
+      this.bufSize = value as number;
       this.inPort(1).request(1);
     } else {
-      if (this.outPort(0).requested() == 0) this.buffer.push(<T> value);
-      else this.outPort(0).send(<T> value);
+      if (this.outPort(0).requested() === 0) this.buffer.push(value as T);
+      else this.outPort(0).send(value as T);
     }
     this.adjustDemanded();
   }
 
   onRequest<K extends number & keyof [T]>(idx: number, n: number): void {
     while (n > 0 && this.buffer.length > 0) {
-      this.outPort(0).send(<T> this.buffer.shift());
+      this.outPort(0).send(this.buffer.shift() as T);
       n--;
     }
     this.adjustDemanded();

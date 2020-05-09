@@ -11,18 +11,18 @@ class Logger {
     this.out = fs.createWriteStream(`${filePrefix}.log`);
   }
 
-  portSubscriber(port: InPort | OutPort, graphName?: string): Subscriber<any> {
+  portSubscriber(port: InPort | OutPort, graphName?: string): Subscriber<unknown> {
     const prefix = `PORT ${graphName ? `<<${graphName}>> ` : ""}${port.nodeId}[${port.portName}]: `;
-    return new Subscriber<any>(
+    return new Subscriber<unknown>(
       ev => this.out.write(prefix + `DATA ${JSON.stringify(ev)}\n`),
       err => this.out.write(prefix + `ERROR ${err}\n`),
       () => this.out.write(prefix + "COMPLETE\n")
     );
   }
 
-  edgeSubscriber(from: OutPort, to: InPort, graphName?: string): Subscriber<any> {
+  edgeSubscriber(from: OutPort, to: InPort, graphName?: string): Subscriber<unknown> {
     const prefix = `EDGE ${graphName ? `<<${graphName}>> ` : ""}${from.nodeId}[${from.portName}] -> ${to.nodeId}[${to.portName}]: `;
-    return new Subscriber<any>(
+    return new Subscriber<unknown>(
       ev => this.out.write(prefix + `DATA ${JSON.stringify(ev)}\n`),
       err => this.out.write(prefix + `ERROR ${err}\n`),
       () => this.out.write(prefix + "COMPLETE\n")

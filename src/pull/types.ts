@@ -16,7 +16,7 @@ export interface Subscription {
   cancel(): void;
 }
 
-export interface Component<Ins extends any[], Outs extends any[]> {
+export interface Component<Ins extends unknown[], Outs extends unknown[]> {
   readonly spec: ComponentSpec;
 
   subscriberFor<K extends number & keyof Ins>(idx: K): Subscriber<Ins[K]>;
@@ -24,5 +24,5 @@ export interface Component<Ins extends any[], Outs extends any[]> {
 
   start(): void;
   terminate(): void;
-  whenTerminated(): Promise<void>;
+  whenTerminated(): Promise<unknown>;
 }

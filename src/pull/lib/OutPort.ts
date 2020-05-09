@@ -1,5 +1,4 @@
 import { Publisher, Subscriber, Subscription } from "../types";
-import Deferred from "../../util/Deferred";
 import AsyncJobStore from "../../util/AsyncJobStore";
 
 class OutPort<T> implements Publisher<T> {
@@ -16,7 +15,7 @@ class OutPort<T> implements Publisher<T> {
     this.compSubscription = s;
   }
 
-  subscriberCount() {
+  subscriberCount(): number {
     return this.subscribers.length;
   }
 
@@ -95,7 +94,7 @@ class OutPort<T> implements Publisher<T> {
     );
   }
 
-  whenTerminated(): Promise<any> {
+  whenTerminated(): Promise<unknown> {
     return this.asyncJobs.whenDrained();
   }
 }

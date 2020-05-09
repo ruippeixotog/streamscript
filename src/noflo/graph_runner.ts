@@ -1,11 +1,9 @@
 import Graph from "../graph";
 import noflo from "noflo";
 import { ComponentLoader, Network } from "noflo";
-import fs from "fs";
 import util from "util";
 
-function asCallback(component, loader) {
-
+function asCallback(component, loader): (callback: (err: Error | null) => void) => void {
   component.componentLoader = loader;
   const network = new Network(component);
 
@@ -60,7 +58,7 @@ function toNofloGraph(graph: Graph, loader: ComponentLoader): noflo.Graph {
   return nofloGraph;
 }
 
-async function runGraph(graph: Graph): Promise<any> {
+async function runGraph(graph: Graph): Promise<void> {
   const loader = new ComponentLoader(".");
   await util.promisify(loader.listComponents.bind(loader))();
 

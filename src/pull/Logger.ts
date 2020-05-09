@@ -11,7 +11,7 @@ class Logger {
     this.out = fs.createWriteStream(filePrefix);
   }
 
-  edgeSubscriber(from: OutPort, to: InPort, graphName?: string): [Subscriber<any>, (n: number) => void, () => void] {
+  edgeSubscriber(from: OutPort, to: InPort, graphName?: string): [Subscriber<unknown>, (n: number) => void, () => void] {
     return this._baseEdgeSubscriber(
       `${from.nodeId}[${from.portName}]`,
       `${to.nodeId}[${to.portName}]`,
@@ -19,7 +19,7 @@ class Logger {
     );
   }
 
-  edgeInitialSubscriber(initial: any, port: InPort, graphName?: string): [Subscriber<any>, (n: number) => void, () => void] {
+  edgeInitialSubscriber(initial: unknown, port: InPort, graphName?: string): [Subscriber<unknown>, (n: number) => void, () => void] {
     return this._baseEdgeSubscriber(
       `INITIAL(${JSON.stringify(initial)})`,
       `${port.nodeId}[${port.portName}]`,
@@ -32,7 +32,7 @@ class Logger {
     return () => this.out.write(prefix + "TERMINATED\n");
   }
 
-  private _baseEdgeSubscriber(from: string, to: string, graphName?: string): [Subscriber<any>, (n: number) => void, () => void] {
+  private _baseEdgeSubscriber(from: string, to: string, graphName?: string): [Subscriber<unknown>, (n: number) => void, () => void] {
     const prefix = `EDGE ${graphName ? `<<${graphName}>> ` : ""}${from} -> ${to}: `;
     const revPrefix = `EDGE ${graphName ? `<<${graphName}>> ` : ""}${to} -> ${from}: `;
 
@@ -42,8 +42,8 @@ class Logger {
       onError: err => this.out.write(prefix + `ERROR ${err}\n`),
       onComplete: () => this.out.write(prefix + "COMPLETE\n")
     };
-    const onRequest = n => this.out.write(revPrefix + `REQUEST ${n}\n`);
-    const onCancel = () => this.out.write(revPrefix + "CANCEL\n");
+    const onRequest = (n): void => { this.out.write(revPrefix + `REQUEST ${n}\n`); };
+    const onCancel = (): void => { this.out.write(revPrefix + "CANCEL\n"); };
 
     return [sub, onRequest, onCancel];
   }

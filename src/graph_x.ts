@@ -17,7 +17,7 @@ class GraphX {
     return this.scopes[this.scopes.length - 1].graph;
   }
 
-  addConstNode(value: any, uuid: string): NodeSpec {
+  addConstNode(value: unknown, uuid: string): NodeSpec {
     const node = this.graph().addNode(
       this.nodeIdForConst(value, uuid),
       this.graph().componentStore.specials.identity
@@ -80,7 +80,7 @@ class GraphX {
     return (moduleName ? moduleName + "." : "") + name;
   }
 
-  nodeIdForConst(value: any, uuid: string): string {
+  nodeIdForConst(value: unknown, uuid: string): string {
     return `Const: ${JSON.stringify(value)} #${uuid}`;
   }
 

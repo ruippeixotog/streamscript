@@ -32,7 +32,7 @@ const objectSet = "operators/SetPropertyValue";
 
 export interface ComponentClass {
   readonly spec: ComponentSpec;
-  new(): Component<any, any>;
+  new(): Component<unknown[], unknown[]>;
 }
 
 function getComponentSpec(name: string, c: ComponentClass): ComponentDef<ComponentClass> {

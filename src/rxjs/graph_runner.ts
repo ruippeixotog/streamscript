@@ -13,19 +13,19 @@ function toComponent(graph: Graph, logger: Logger, graphName?: string): Componen
       outs: graph.externalOuts.map(p => p.portName),
     },
     connect: (...externalIns) => {
-      const componentStore: ComponentStore<Component> = graph.componentStore;
+      const componentStore = graph.componentStore as ComponentStore<Component>;
 
       const activateFuncs: (() => Subscription | null)[] = [];
-      const inObservables = new DeepMap<InPort, Observable<any>[]>();
-      const outSubjects = new DeepMap<OutPort, Subject<any>>();
+      const inObservables = new DeepMap<InPort, Observable<unknown>[]>();
+      const outSubjects = new DeepMap<OutPort, Subject<unknown>>();
 
-      function inObservablesFor(port: InPort): Observable<any>[] {
+      function inObservablesFor(port: InPort): Observable<unknown>[] {
         return inObservables.getOrElseSet(port, () => []);
       }
 
-      function outSubjectFor(port: InPort): Subject<any> {
+      function outSubjectFor(port: InPort): Subject<unknown> {
         return outSubjects.getOrElseSet(port, () => {
-          const subj = new Subject<any>();
+          const subj = new Subject<unknown>();
           subj.subscribe(logger.portSubscriber(port, graphName));
           return subj;
         });
@@ -70,7 +70,7 @@ function toComponent(graph: Graph, logger: Logger, graphName?: string): Componen
         outSubjectFor(p.innerPort)
       );
 
-      const activate = () => {
+      const activate = (): Subscription => {
         const aggSub = new Subscription();
         activateFuncs.forEach(f => {
           const sub = f();
@@ -89,7 +89,7 @@ function toComponent(graph: Graph, logger: Logger, graphName?: string): Componen
   };
 }
 
-async function runGraph(graph: Graph): Promise<any> {
+async function runGraph(graph: Graph): Promise<void> {
   const logger = new Logger("out/packets");
   toComponent(graph, logger).connect().activate();
 }

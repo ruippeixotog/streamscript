@@ -23,8 +23,13 @@ type ObjectReplace<T, C, A> = { [P in keyof T]: DeepReplace<T[P], C, A> };
 type SSNodeMatch<K, T> = Omit<Extract<ObjectReplace<SSNode, SSNode, T>, { type: K }>, "type">;
 export type SSAction<T, U> = { [K in SSNodeType]: (x: SSNodeMatch<K, T>) => U };
 
+function run<T>(node: SSNode, fs: SSAction<SSNode, T>): T {
+  // @ts-ignore: type of fs ensures node has the correct type
+  return fs[node.type](node);
+}
+
 function fold<T>(node: SSNode, fs: SSAction<T, T>): T {
-  const fold1 = (n: SSNode) => fold(n, fs);
+  const fold1 = (n: SSNode): T => fold(n, fs);
   return run<T>(node, {
     Module: v => fs["Module"]({ ...v, stmts: v.stmts.map(fold1) }),
     Import: v => fs["Import"](v),
@@ -42,11 +47,6 @@ function fold<T>(node: SSNode, fs: SSAction<T, T>): T {
     Wildcard: v => fs["Wildcard"](v),
     Void: v => fs["Void"](v),
   });
-}
-
-function run<T>(node: SSNode, fs: SSAction<SSNode, T>): T {
-  // @ts-ignore: type of fs ensures node has the correct type
-  return fs[node.type](node);
 }
 
 function render(node: SSNode): string {
