@@ -19,9 +19,17 @@ export function print(graph: Graph): void {
 function toGraphvizGraph(graph: Graph): graphviz.Graph {
   const sanitize = (nodeId: string): string => nodeId.replace(/"/g, '\\"');
 
+  const nodeLabel = (label: string, sublabel?: string): string =>
+    sublabel ?
+      `!${label}<br/><font color="darkgray" point-size="10px">${sublabel}</font>` :
+      sanitize(label);
+
   const g = graphviz.digraph("G");
-  graph.nodes.forEach((_, nodeId) =>
-    g.addNode(sanitize(nodeId), { label: sanitize(nodeId), shape: "box" })
+  graph.nodes.forEach((nodeImpl, nodeId) =>
+    g.addNode(sanitize(nodeId), {
+      label: nodeLabel(nodeId, (nodeImpl as {componentId?: string}).componentId),
+      shape: "box"
+    })
   );
   graph.edges.forEach(([from, to]) =>
     g.addEdge(sanitize(from.nodeId), sanitize(to.nodeId), {
