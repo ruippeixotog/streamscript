@@ -7,13 +7,11 @@ import parser from "./parser";
 import type { SSNode } from "./ast";
 import type { InPort, NodeSpec } from "./graph";
 
-function compileGraph(
+function compileGraphAux(
   ast: SSNode,
-  graph: Graph,
+  graphX: GraphX,
   importRootDir: string,
-  thisModuleName: string | null = null): NodeSpec {
-
-  const graphX = new GraphX(graph);
+  thisModuleName: string | null): NodeSpec {
 
   function build(node: SSNode): NodeSpec {
     return run<NodeSpec>(node, {
@@ -23,7 +21,7 @@ function compileGraph(
       },
       Import: ({ moduleName }) => {
         const moduleAst = parser.parseFile(`${importRootDir}/${moduleName}.ss`);
-        compileGraph(moduleAst, graphX.graph(), importRootDir, moduleName);
+        compileGraphAux(moduleAst, graphX, importRootDir, moduleName);
         return { ins: [], outs: [] };
       },
       FunDecl: ({ funName, funDef }) => {
@@ -161,6 +159,21 @@ function compileGraph(
   }
 
   return build(ast);
+}
+
+function compileGraph(
+  ast: SSNode,
+  graph: Graph,
+  importRootDir: string,
+  preludeModule: string | null = "core"): void {
+
+  const graphX = new GraphX(graph, preludeModule);
+
+  if (preludeModule) {
+    const moduleAst = parser.parseFile(`${importRootDir}/${preludeModule}.ss`);
+    compileGraphAux(moduleAst, graphX, importRootDir, preludeModule);
+  }
+  compileGraphAux(ast, graphX, importRootDir, null);
 }
 
 export default { compileGraph };

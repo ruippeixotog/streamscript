@@ -7,9 +7,11 @@ type Scope = {
 }
 
 class GraphX {
+  preludeModule: string | null;
   scopes: Scope[];
 
-  constructor(graph: Graph) {
+  constructor(graph: Graph, preludeModule: string | null) {
+    this.preludeModule = preludeModule;
     this.scopes = [{ id: "", graph, vars: new Set() }];
   }
 
@@ -60,6 +62,9 @@ class GraphX {
       }
     }
     if (node === null) {
+      if (moduleName !== this.preludeModule) {
+        return this.addFunctionNode(this.preludeModule, name, uuid);
+      }
       throw new Error(`Unknown subgraph: ${fullName}`);
     }
     const subgraph = this.graph().getSubgraph(fullName);
