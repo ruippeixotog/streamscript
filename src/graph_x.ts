@@ -63,7 +63,9 @@ class GraphX {
     }
     if (node === null) {
       if (moduleName !== this.preludeModule) {
-        return this.addFunctionNode(this.preludeModule, name, uuid);
+        try {
+          return this.addFunctionNode(this.preludeModule, name, uuid);
+        } catch (_) { /* do nothing */ }
       }
       throw new Error(`Unknown subgraph: ${fullName}`);
     }
