@@ -30,7 +30,6 @@ export const Modulo = BinOp((a1: any, a2: any) => a1 % a2);
 
 export const Negate = UnOp((a1: any) => -a1);
 export const Not = UnOp((a1: any) => !a1);
-/* eslint-enable @typescript-eslint/no-explicit-any */
 
 export const ArrayPush = BinOp((arr: unknown[], elem: unknown) => [...arr, elem]);
 
@@ -38,3 +37,6 @@ export class SetPropertyValue extends PureComponent<[string, unknown, {}], {}> {
   static spec = { ins: ["key", "value", "obj"], outs: ["out"] };
   process = (k: string, v: unknown, obj: {}): {} => ({ ...obj, [k]: v });
 }
+
+export const Index = BinOp((coll: any, index: any) => coll[index]);
+/* eslint-enable @typescript-eslint/no-explicit-any */

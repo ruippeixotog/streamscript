@@ -29,6 +29,7 @@ const unOps = {
 
 const arrayPush = "operators/ArrayPush";
 const objectSet = "operators/SetPropertyValue";
+const index = "operators/Index";
 
 export interface ComponentClass {
   readonly spec: ComponentSpec;
@@ -57,7 +58,7 @@ async function loadComponents(): Promise<ComponentStore<ComponentClass>> {
   // console.log(util.inspect(components, { showHidden: false, depth: null }));
   return {
     components: Object.fromEntries(components),
-    specials: { identity, binOps, unOps, arrayPush, objectSet }
+    specials: { identity, binOps, unOps, arrayPush, objectSet, index }
   };
 }
 

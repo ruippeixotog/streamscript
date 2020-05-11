@@ -61,7 +61,7 @@ function compileGraphAux(
         const [collSpec, indexSpec] = [build(coll), build(index)];
         util.assertOutArity(1, collSpec);
         util.assertOutArity(1, indexSpec);
-        const node = graphX.graph().addNode(`Index_${uuid}`, "streamscript/Index");
+        const node = graphX.graph().addNode(`Index_${uuid}`, graphX.graph().componentStore.specials.index);
         return graphX.graph().connectNodesBin(collSpec, indexSpec, node);
       },
       Lambda: ({ uuid, ins, outs, body }) => {

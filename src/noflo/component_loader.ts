@@ -27,6 +27,7 @@ const unOps = {
 
 const arrayPush = "streamscript/ArrayPush";
 const objectSet = "objects/SetPropertyValue";
+const index = "streamscript/Index";
 
 const overrideIns = {
   "core/Output": ["in"]
@@ -58,7 +59,7 @@ async function loadComponents(): Promise<ComponentStore<Component>> {
 
   return {
     components: Object.fromEntries(componentSpecs),
-    specials: { identity, binOps, unOps, arrayPush, objectSet }
+    specials: { identity, binOps, unOps, arrayPush, objectSet, index }
   };
 }
 

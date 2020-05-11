@@ -17,5 +17,6 @@ export type ComponentStore<Impl> = {
     unOps: { [op: string]: string };
     arrayPush: string;
     objectSet: string;
+    index: string;
   };
 }

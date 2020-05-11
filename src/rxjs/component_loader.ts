@@ -29,6 +29,7 @@ const unOps = {
 
 const arrayPush = "operators/ArrayPush";
 const objectSet = "operators/SetPropertyValue";
+const index = "operators/Index";
 
 function getComponentSpec(name: string, c: Component): ComponentDef<Component> {
   // TODO: read from metadata
@@ -56,7 +57,7 @@ async function loadComponents(): Promise<ComponentStore<Component>> {
   // console.log(util.inspect(components, { showHidden: false, depth: null }));
   return {
     components: Object.fromEntries(components),
-    specials: { identity, binOps, unOps, arrayPush, objectSet }
+    specials: { identity, binOps, unOps, arrayPush, objectSet, index }
   };
 }
 
