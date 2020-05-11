@@ -1,4 +1,5 @@
 import BaseComponent from "../lib/BaseComponent";
+import PureComponent from "../lib/PureComponent";
 
 export class Identity<T> extends BaseComponent<[T], [T]> {
   static spec = { ins: ["in"], outs: ["out"] };
@@ -191,22 +192,125 @@ export class Buffer<T> extends BaseComponent<[T, number], [T]> {
   }
 }
 
-// export const ToArray = flow<any, any[]>(async function*(input) {
-//   const arr: any[] = [];
-//   for await (const e of input) {
-//     arr.push(e);
-//   }
-//   yield arr;
-// });
+export class Zip<T, U> extends PureComponent<[T, U], [T, U]> {
+  static spec = { ins: ["in1", "in2"], outs: ["out"] };
+  process = (a1: T, a2: U): [T, U] => [a1, a2];
+}
+
+export class Nth<T> extends BaseComponent<[T, number], [T]> {
+  static spec = { ins: ["in", "n"], outs: ["out"] };
+
+  private n?: number = undefined;
+  private requested = false;
+
+  onNext<K extends number & keyof [T, number]>(idx: number, value: T | number): void {
+    if (idx === 1) {
+      this.n = value as number;
+      this.inPort(1).cancel();
+      if (this.requested) {
+        this.inPort(0).request(this.n + 1);
+      }
+    } else {
+      if (this.n === 0) {
+        this.outPort(idx).send(value as T);
+        this.terminate();
+      } else {
+        (this.n as number)--;
+      }
+    }
+  }
+
+  onRequest<K extends number & keyof [T]>(idx: number, n: number): void {
+    if (!this.requested && this.n !== undefined) {
+      this.inPort(0).request(this.n + 1);
+    }
+    this.requested = true;
+  }
+
+  start(): void {
+    super.start();
+    this.inPort(1).request(1);
+  }
+}
+
+export class ToArray<T> extends BaseComponent<[T], [T[]]> {
+  static spec = { ins: ["in"], outs: ["out"] };
+
+  arr: T[] = [];
+
+  onNext(idx: number, value: T): void {
+    this.arr.push(value);
+    this.inPort(idx).request(1);
+  }
+
+  onComplete(idx: number): void {
+    this.outPort(0).send(this.arr);
+    super.onComplete(idx);
+  }
+
+  onRequest(idx: number, n: number): void {
+    this.inPort(idx).request(1);
+  }
+}
+
+export class FromArray<T> extends BaseComponent<[T[]], [T]> {
+  static spec = { ins: ["in"], outs: ["out"] };
+
+  buffer: T[] = [];
+
+  onNext(idx: number, value: T[]): void {
+    while (this.outPort(0).requested() > 0 && value.length > 0) {
+      this.outPort(idx).send(value.shift() as T);
+    }
+    this.buffer = this.buffer.concat(value);
+  }
+
+  onComplete(idx: number) {
+    if (this.buffer.length === 0) {
+      super.onComplete(idx);
+    }
+  }
+
+  onRequest(idx: number, n: number): void {
+    while (n > 0 && this.buffer.length > 0) {
+      this.outPort(idx).send(this.buffer?.shift() as T);
+      n--;
+    }
+    if (this.buffer.length === 0 && this.inPort(idx).subscriptionCount() === 0) {
+      super.onComplete(idx);
+      return;
+    }
+    if (n > 0) {
+      this.inPort(0).request(1);
+    }
+  }
+}
+
+// export class ToArray<T> extends GeneratorComponent<[T], T[]> {
+//   static spec = { ins: ["in"], outs: ["out"] };
 //
-// export const FromArray = flow<any[], any>(async function*(input) {
-//   for await (const arr of input) {
-//     for (const e of arr) {
-//       yield e;
+//   async* processGenerator(input: AsyncGenerator<T>): AsyncGenerator<T[]> {
+//     const arr: T[] = [];
+//     for await (const e of input) {
+//       arr.push(e);
+//     }
+//     yield arr;
+//   }
+// }
+//
+// export class FromArray<T> extends GeneratorComponent<[T[]], T> {
+//   static spec = { ins: ["in"], outs: ["out"] };
+//
+//   async* processGenerator(input: AsyncGenerator<T[]>): AsyncGenerator<T> {
+//     for await (const arr of input) {
+//       console.log(arr);
+//       for (const e of arr) {
+//         yield e;
+//       }
 //     }
 //   }
-// });
-//
+// }
+
 //
 // // export const CombineLatest = pipe(2, 2, (arg1, arg2) => {
 // //   const latest = combineLatest([arg1, arg2]);

@@ -18,9 +18,12 @@ buf(in, n) => out {
   out <- extern("core/Buffer") <- (in, n)
 }
 
-/*
-delay(x, delay) => out {
-  out <- extern("core/Delay") <- (x, delay)
+zip(in1, in2) => out {
+  out <- extern("core/Zip") <- (in1, in2)
+}
+
+nth(in, n) => out {
+  out <- extern("core/Nth") <- (in, n)
 }
 
 toArray(in) => out {
@@ -29,6 +32,11 @@ toArray(in) => out {
 
 fromArray(in) => out {
   out <- extern("core/FromArray") <- in
+}
+
+/*
+delay(x, delay) => out {
+  out <- extern("core/Delay") <- (x, delay)
 }
 
 combineLatest(in1, in2) => (out1, out2) {
