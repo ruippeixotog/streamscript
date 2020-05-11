@@ -60,7 +60,7 @@ class OutPort<T> implements Publisher<T> {
 
   send(t: T): void {
     if (!this.active || this.demand <= 0) {
-      throw new Error("Illegal send on out port");
+      throw new Error(`${this.name}: Illegal send on out port: ${t}`);
     }
     this.subscribers.forEach(s => this.asyncJobs.add(() => s.ref.onNext(t)));
     this.demand--;

@@ -38,6 +38,7 @@ function toComponent(graph: Graph, logger: Logger, graphName?: string): Componen
   });
 
   // function printStatus() {
+  //   console.log(graphName);
   //   console.log(Object.entries(nodeComponents).map(([key, comp]) => [key, comp.whenTerminated()]));
   //   setTimeout(printStatus, 1000);
   // }
