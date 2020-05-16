@@ -46,7 +46,7 @@ describe("InPort", function () {
     assert.equal(compSub.status, "active");
 
     pub.complete();
-    assert.equal(compSub.status, "completed");
+    await eventually(() => assert.equal(compSub.status, "completed"));
   });
 
   it("should ensure all communication to publishers is asynchronous", async function () {
@@ -137,7 +137,7 @@ describe("InPort", function () {
 
     pubs[0].complete();
     assert.equal(port.subscriptionCount(), 0);
-    assert.equal(compSub.status, "completed");
+    await eventually(() => assert.equal(compSub.status, "completed"));
   });
 
   it("should handle cancellations correctly with multiple publishers", async function () {

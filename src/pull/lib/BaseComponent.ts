@@ -11,7 +11,7 @@ abstract class BaseComponent<Ins extends unknown[], Outs extends unknown[]> impl
   private inPorts: InPort<Outs[number]>[];
   private outPorts: OutPort<Outs[number]>[];
 
-  private whenTerminatedHandler: Deferred<void>;
+  private whenTerminatedHandler: Deferred<void> = new Deferred();
 
   abstract onNext(idx: number, value: Ins[number]): void;
   abstract onRequest(idx: number, n: number): void;
@@ -22,12 +22,10 @@ abstract class BaseComponent<Ins extends unknown[], Outs extends unknown[]> impl
 
   onComplete(idx: number): void {
     this._checkTermination();
-    this._checkIfTerminated();
   }
 
   onCancel(idx: number): void {
     this._checkTermination();
-    this._checkIfTerminated();
   }
 
   constructor() {
@@ -43,7 +41,9 @@ abstract class BaseComponent<Ins extends unknown[], Outs extends unknown[]> impl
       cancel: () => this.onCancel(i)
     }));
 
-    this.whenTerminatedHandler = new Deferred();
+    Promise.all(this.inPorts.map(st => st.whenTerminated()))
+      .then(() => Promise.all(this.outPorts.map(st => st.whenTerminated())))
+      .then(() => this.whenTerminatedHandler.resolve());
   }
 
   get spec(): ComponentSpec {
@@ -52,12 +52,11 @@ abstract class BaseComponent<Ins extends unknown[], Outs extends unknown[]> impl
 
   start(): void {
     this._checkTermination();
-    this._checkIfTerminated();
   }
 
   terminate(): void {
-    this.inPorts.forEach(port => port.cancel());
-    this.outPorts.forEach(port => port.complete());
+    this.inPorts.filter(p => !p.isTerminated()).forEach(p => p.cancel());
+    this.outPorts.filter(p => !p.isTerminated()).forEach(p => p.complete());
   }
 
   whenTerminated(): Promise<unknown> {
@@ -93,19 +92,6 @@ abstract class BaseComponent<Ins extends unknown[], Outs extends unknown[]> impl
 
     if (insDone || outsDone) {
       this.terminate();
-    }
-  }
-
-  _checkIfTerminated(): void {
-    const insDone = this.spec.ins.length === 0 ||
-      this.inPorts.every(st => st.subscriptionCount() === 0);
-    const outsDone = this.spec.outs.length === 0 ||
-      this.outPorts.every(st => st.subscriberCount() === 0);
-
-    if (insDone && outsDone) {
-      Promise.all(this.inPorts.map(st => st.whenTerminated()))
-        .then(() => Promise.all(this.outPorts.map(st => st.whenTerminated())))
-        .then(() => this.whenTerminatedHandler.resolve());
     }
   }
 }

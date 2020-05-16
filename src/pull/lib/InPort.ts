@@ -1,11 +1,16 @@
 import { Subscriber, Subscription } from "../types";
 import AsyncJobStore from "../../util/AsyncJobStore";
+import Deferred from "../../util/Deferred";
+
+type PortState = "active" | "draining" | "terminated";
 
 class InPort<T> implements Subscription {
   private name: string;
   private compSubscriber: Subscriber<T>;
-  private active = true;
+
+  private state: PortState = "active";
   private asyncJobs: AsyncJobStore = new AsyncJobStore();
+  private whenTerminatedHandler: Deferred<void> = new Deferred();
 
   private queue: T[] = [];
   private demanded = 0;
@@ -34,6 +39,9 @@ class InPort<T> implements Subscription {
       },
 
       onNext: value => {
+        if (this.state !== "active") {
+          return;
+        }
         this.subscriptions
           .filter(s => localSubs.indexOf(s.ref) !== -1)
           .forEach(s => {
@@ -53,16 +61,21 @@ class InPort<T> implements Subscription {
       },
 
       onComplete: () => {
+        if (this.state !== "active") {
+          return;
+        }
         this.subscriptions =
           this.subscriptions.filter(s => localSubs.indexOf(s.ref) === -1);
         this._maybeComplete();
       },
 
       onError: err => {
-        this.subscriptions = this.subscriptions
-          .filter(s => localSubs.indexOf(s.ref) === -1);
-        this.active = false;
-        this.compSubscriber.onError(err);
+        if (this.state !== "active") {
+          return;
+        }
+        this.subscriptions =
+          this.subscriptions.filter(s => localSubs.indexOf(s.ref) === -1);
+        this._startDrain(err);
       }
     };
   }
@@ -91,20 +104,38 @@ class InPort<T> implements Subscription {
 
   cancel(): void {
     this.subscriptions.forEach(s => this.asyncJobs.add(() => s.ref.cancel()));
-    this.asyncJobs.drain();
+  }
+
+  isTerminated(): boolean {
+    return this.state === "terminated";
   }
 
   whenTerminated(): Promise<unknown> {
-    return this.asyncJobs.whenDrained();
+    return this.whenTerminatedHandler.promise;
   }
 
   private _maybeComplete(): boolean {
-    if (this.active && this.subscriptions.length === 0 && this.queue.length === 0) {
-      this.active = false;
-      this.compSubscriber.onComplete();
+    if (this.state === "active" && this.subscriptions.length === 0 && this.queue.length === 0) {
+      this._startDrain();
       return true;
     }
     return false;
+  }
+
+  private _startDrain(err?: Error): void {
+    if (this.state !== "active") {
+      return;
+    }
+    this.state = "draining";
+    this.subscriptions = [];
+
+    this.asyncJobs.drain();
+    this.asyncJobs.whenDrained()
+      .then(() => {
+        this.state = "terminated";
+        err ? this.compSubscriber.onError(err) : this.compSubscriber.onComplete();
+      })
+      .then(() => this.whenTerminatedHandler.resolve());
   }
 }
 

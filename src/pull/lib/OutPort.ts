@@ -1,11 +1,16 @@
 import { Publisher, Subscriber, Subscription } from "../types";
 import AsyncJobStore from "../../util/AsyncJobStore";
+import Deferred from "../../util/Deferred";
+
+type PortState = "active" | "draining" | "terminated";
 
 class OutPort<T> implements Publisher<T> {
   private name: string;
   private compSubscription: Subscription;
-  private active = true;
+
+  private state: PortState = "active";
   private asyncJobs: AsyncJobStore = new AsyncJobStore();
+  private whenTerminatedHandler: Deferred<void> = new Deferred();
 
   private demand = 0;
   private subscribers: { ref: Subscriber<T>; demand: number }[] = [];
@@ -48,7 +53,7 @@ class OutPort<T> implements Publisher<T> {
             this.subscribers.filter(s0 => s0.ref !== subscriber);
 
         if (newSubscribers.length === 0) {
-          this.compSubscription.cancel();
+          this._startDrain();
         }
       }
     });
@@ -59,7 +64,7 @@ class OutPort<T> implements Publisher<T> {
   }
 
   send(t: T): void {
-    if (!this.active || this.demand <= 0) {
+    if (this.state !== "active" || this.demand <= 0) {
       throw new Error(`${this.name}: Illegal send on out port: ${t}`);
     }
     this.subscribers.forEach(s => this.asyncJobs.add(() => s.ref.onNext(t)));
@@ -70,20 +75,14 @@ class OutPort<T> implements Publisher<T> {
     // if(!this.active) {
     //   throw new Error("Illegal complete on out port");
     // }
-    this.subscribers.forEach(s => this.asyncJobs.add(() => s.ref.onComplete()));
-    this.asyncJobs.drain();
-    this.subscribers = [];
-    this.active = false;
+    this._startDrain();
   }
 
-  error(e: Error): void {
-    if (!this.active) {
+  error(err: Error): void {
+    if (this.state !== "active") {
       throw new Error("Illegal error on out port");
     }
-    this.subscribers.forEach(s => s.ref.onError(e));
-    this.asyncJobs.drain();
-    this.subscribers = [];
-    this.active = false;
+    this._startDrain(err);
   }
 
   sendAsync(promise: Promise<IteratorResult<T>>): void {
@@ -94,8 +93,31 @@ class OutPort<T> implements Publisher<T> {
     );
   }
 
+  isTerminated(): boolean {
+    return this.state === "terminated";
+  }
+
   whenTerminated(): Promise<unknown> {
-    return this.asyncJobs.whenDrained();
+    return this.whenTerminatedHandler.promise;
+  }
+
+  private _startDrain(err?: Error): void {
+    if (this.state !== "active") {
+      return;
+    }
+    this.state = "draining";
+    this.subscribers.forEach(s => this.asyncJobs.add(() =>
+      err ? s.ref.onError(err) : s.ref.onComplete())
+    );
+    this.subscribers = [];
+
+    this.asyncJobs.drain();
+    this.asyncJobs.whenDrained()
+      .then(() => {
+        this.state = "terminated";
+        this.compSubscription.cancel();
+      })
+      .then(() => this.whenTerminatedHandler.resolve());
   }
 }
 

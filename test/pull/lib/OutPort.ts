@@ -137,6 +137,6 @@ describe("OutPort", function () {
 
     subs[0].subscription?.cancel();
     assert.equal(port.subscriberCount(), 0);
-    assert.equal(compSub.cancelled, true);
+    await eventually(() => assert.equal(compSub.cancelled, true));
   });
 });
