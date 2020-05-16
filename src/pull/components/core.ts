@@ -265,7 +265,7 @@ export class FromArray<T> extends BaseComponent<[T[]], [T]> {
     this.buffer = this.buffer.concat(value);
   }
 
-  onComplete(idx: number) {
+  onComplete(idx: number): void {
     if (this.buffer.length === 0) {
       super.onComplete(idx);
     }

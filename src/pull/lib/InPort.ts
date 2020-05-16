@@ -14,6 +14,11 @@ class InPort<T> implements Subscription {
   constructor(name: string, s: Subscriber<T>) {
     this.name = name;
     this.compSubscriber = s;
+
+    s.onSubscribe({
+      request: n => this.request(n),
+      cancel: () => this.cancel()
+    });
   }
 
   subscriptionCount(): number {
