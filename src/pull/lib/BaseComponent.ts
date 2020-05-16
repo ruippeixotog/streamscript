@@ -17,7 +17,7 @@ abstract class BaseComponent<Ins extends unknown[], Outs extends unknown[]> impl
   abstract onRequest(idx: number, n: number): void;
 
   onError(idx: number, err: Error): void {
-    this.errorAll(err);
+    this.terminate(err);
   }
 
   onComplete(idx: number): void {
@@ -54,9 +54,9 @@ abstract class BaseComponent<Ins extends unknown[], Outs extends unknown[]> impl
     this._checkTermination();
   }
 
-  terminate(): void {
+  terminate(err?: Error): void {
     this.inPorts.filter(p => !p.isTerminated()).forEach(p => p.cancel());
-    this.outPorts.filter(p => !p.isTerminated()).forEach(p => p.complete());
+    this.outPorts.filter(p => !p.isTerminated()).forEach(p => err ? p.error(err) : p.complete());
   }
 
   whenTerminated(): Promise<unknown> {
@@ -77,11 +77,6 @@ abstract class BaseComponent<Ins extends unknown[], Outs extends unknown[]> impl
 
   outPort(idx: number): OutPort<Outs[number]> {
     return this.outPorts[idx];
-  }
-
-  errorAll(err: Error): void {
-    this.inPorts.forEach(port => port.cancel());
-    this.outPorts.forEach(port => port.error(err));
   }
 
   _checkTermination(): void {
