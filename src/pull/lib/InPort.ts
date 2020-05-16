@@ -1,22 +1,16 @@
 import { Subscriber, Subscription } from "../types";
-import AsyncJobStore from "../../util/AsyncJobStore";
-import Deferred from "../../util/Deferred";
+import PortBase from "./PortBase";
 
-type PortState = "active" | "draining" | "terminated";
-
-class InPort<T> implements Subscription {
+class InPort<T> extends PortBase implements Subscription {
   private name: string;
   private compSubscriber: Subscriber<T>;
-
-  private state: PortState = "active";
-  private asyncJobs: AsyncJobStore = new AsyncJobStore();
-  private whenTerminatedHandler: Deferred<void> = new Deferred();
 
   private queue: T[] = [];
   private demanded = 0;
   private subscriptions: { ref: Subscription; demanded: number }[] = [];
 
   constructor(name: string, s: Subscriber<T>) {
+    super();
     this.name = name;
     this.compSubscriber = s;
 
@@ -75,7 +69,7 @@ class InPort<T> implements Subscription {
         }
         this.subscriptions =
           this.subscriptions.filter(s => localSubs.indexOf(s.ref) === -1);
-        this._startDrain(err);
+        this._startDrain(() => this.compSubscriber.onError(err));
       }
     };
   }
@@ -106,36 +100,12 @@ class InPort<T> implements Subscription {
     this.subscriptions.forEach(s => this.asyncJobs.add(() => s.ref.cancel()));
   }
 
-  isTerminated(): boolean {
-    return this.state === "terminated";
-  }
-
-  whenTerminated(): Promise<unknown> {
-    return this.whenTerminatedHandler.promise;
-  }
-
   private _maybeComplete(): boolean {
     if (this.state === "active" && this.subscriptions.length === 0 && this.queue.length === 0) {
-      this._startDrain();
+      this._startDrain(() => this.compSubscriber.onComplete());
       return true;
     }
     return false;
-  }
-
-  private _startDrain(err?: Error): void {
-    if (this.state !== "active") {
-      return;
-    }
-    this.state = "draining";
-    this.subscriptions = [];
-
-    this.asyncJobs.drain();
-    this.asyncJobs.whenDrained()
-      .then(() => {
-        this.state = "terminated";
-        err ? this.compSubscriber.onError(err) : this.compSubscriber.onComplete();
-      })
-      .then(() => this.whenTerminatedHandler.resolve());
   }
 }
 

@@ -1,21 +1,15 @@
 import { Publisher, Subscriber, Subscription } from "../types";
-import AsyncJobStore from "../../util/AsyncJobStore";
-import Deferred from "../../util/Deferred";
+import PortBase from "./PortBase";
 
-type PortState = "active" | "draining" | "terminated";
-
-class OutPort<T> implements Publisher<T> {
+class OutPort<T> extends PortBase implements Publisher<T> {
   private name: string;
   private compSubscription: Subscription;
-
-  private state: PortState = "active";
-  private asyncJobs: AsyncJobStore = new AsyncJobStore();
-  private whenTerminatedHandler: Deferred<void> = new Deferred();
 
   private demand = 0;
   private subscribers: { ref: Subscriber<T>; demand: number }[] = [];
 
   constructor(name: string, s: Subscription) {
+    super();
     this.name = name;
     this.compSubscription = s;
   }
@@ -53,7 +47,7 @@ class OutPort<T> implements Publisher<T> {
             this.subscribers.filter(s0 => s0.ref !== subscriber);
 
         if (newSubscribers.length === 0) {
-          this._startDrain();
+          this._startDrainSimple();
         }
       }
     });
@@ -75,14 +69,22 @@ class OutPort<T> implements Publisher<T> {
     // if(!this.active) {
     //   throw new Error("Illegal complete on out port");
     // }
-    this._startDrain();
+    this.subscribers.forEach(s =>
+      this.asyncJobs.add(() => s.ref.onComplete())
+    );
+    this.subscribers = [];
+    this._startDrainSimple();
   }
 
   error(err: Error): void {
     if (this.state !== "active") {
       throw new Error("Illegal error on out port");
     }
-    this._startDrain(err);
+    this.subscribers.forEach(s =>
+      this.asyncJobs.add(() => s.ref.onError(err))
+    );
+    this.subscribers = [];
+    this._startDrainSimple();
   }
 
   sendAsync(promise: Promise<IteratorResult<T>>): void {
@@ -93,31 +95,8 @@ class OutPort<T> implements Publisher<T> {
     );
   }
 
-  isTerminated(): boolean {
-    return this.state === "terminated";
-  }
-
-  whenTerminated(): Promise<unknown> {
-    return this.whenTerminatedHandler.promise;
-  }
-
-  private _startDrain(err?: Error): void {
-    if (this.state !== "active") {
-      return;
-    }
-    this.state = "draining";
-    this.subscribers.forEach(s => this.asyncJobs.add(() =>
-      err ? s.ref.onError(err) : s.ref.onComplete())
-    );
-    this.subscribers = [];
-
-    this.asyncJobs.drain();
-    this.asyncJobs.whenDrained()
-      .then(() => {
-        this.state = "terminated";
-        this.compSubscription.cancel();
-      })
-      .then(() => this.whenTerminatedHandler.resolve());
+  private _startDrainSimple(): void {
+    return this._startDrain(() => this.compSubscription.cancel());
   }
 }
 
