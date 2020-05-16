@@ -21,11 +21,15 @@ abstract class BaseComponent<Ins extends unknown[], Outs extends unknown[]> impl
   }
 
   onComplete(idx: number): void {
-    this._checkTermination();
+    if (this.shouldTerminate()) {
+      this.terminate();
+    }
   }
 
   onCancel(idx: number): void {
-    this._checkTermination();
+    if (this.shouldTerminate()) {
+      this.terminate();
+    }
   }
 
   constructor() {
@@ -51,7 +55,9 @@ abstract class BaseComponent<Ins extends unknown[], Outs extends unknown[]> impl
   }
 
   start(): void {
-    this._checkTermination();
+    if (this.shouldTerminate()) {
+      this.terminate();
+    }
   }
 
   terminate(err?: Error): void {
@@ -79,15 +85,13 @@ abstract class BaseComponent<Ins extends unknown[], Outs extends unknown[]> impl
     return this.outPorts[idx];
   }
 
-  _checkTermination(): void {
+  protected shouldTerminate(): boolean {
     const insDone = this.spec.ins.length > 0 &&
       this.inPorts.every(st => st.subscriptionCount() === 0);
     const outsDone = this.spec.outs.length > 0 &&
       this.outPorts.every(st => st.subscriberCount() === 0);
 
-    if (insDone || outsDone) {
-      this.terminate();
-    }
+    return insDone || outsDone;
   }
 }
 

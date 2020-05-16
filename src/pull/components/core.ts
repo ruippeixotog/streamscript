@@ -50,15 +50,14 @@ export class Repeat<T> extends BaseComponent<[], [T]> {
     }
   }
 
-  onComplete(idx: number): void {
-    if (this.repValue === undefined) {
-      super.onComplete(idx);
-    }
-  }
-
   start(): void {
     super.start();
     this.inPort(0).request(1);
+  }
+
+  protected shouldTerminate(): boolean {
+    return this.repValue === undefined && this.inPort(0).isTerminated() ||
+      this.outPort(0).isTerminated();
   }
 }
 
@@ -127,15 +126,14 @@ export class Interval extends BaseComponent<[number], [number]> {
     }
   }
 
-  onComplete(idx: number): void {
-    if (this.currPeriod === undefined) {
-      super.onComplete(idx);
-    }
-  }
-
   start(): void {
     super.start();
     this.inPort(0).request(1);
+  }
+
+  protected shouldTerminate(): boolean {
+    return this.currPeriod === undefined && this.inPort(0).isTerminated() ||
+      this.outPort(0).isTerminated();
   }
 }
 
