@@ -1,3 +1,4 @@
+import assert from "assert";
 import { Publisher, Subscriber, Subscription } from "../types";
 import PortBase from "./PortBase";
 
@@ -62,23 +63,20 @@ class OutPort<T> extends PortBase<T> implements Publisher<T> {
   }
 
   send(t: T): void {
-    if (this.state !== "active" || this.demand <= 0) {
-      throw new Error(`${this.name}: Illegal send on out port: ${t}`);
-    }
+    assert(
+      this.state === "active" && this.demand > 0,
+      `${this.name}: Illegal send on out port (${JSON.stringify(t)})`
+    );
     this._sendInternal(t);
   }
 
   complete(): void {
-    // if(!this.active) {
-    //   throw new Error("Illegal complete on out port");
-    // }
+    assert(this.state === "active", `${this.name}: Illegal complete on inactive out port`);
     this._startDrainSimple();
   }
 
   error(err: Error): void {
-    if (this.state !== "active") {
-      throw new Error("Illegal error on out port");
-    }
+    assert(this.state === "active", `${this.name}: Illegal error on inactive out port`);
     this._startDrainSimple(err);
   }
 

@@ -1,3 +1,4 @@
+import assert from "assert";
 import { Subscriber, Subscription } from "../types";
 import PortBase from "./PortBase";
 
@@ -38,9 +39,10 @@ class InPort<T> extends PortBase<T> implements Subscription {
         this.subscriptions
           .filter(s => localSubs.indexOf(s.ref) !== -1)
           .forEach(s => {
-            if (s.demanded === 0) {
-              throw new Error("Assertion error");
-            }
+            assert(
+              s.demanded > 0,
+              `${this.name}: Illegal onNext on in port (${JSON.stringify(value)})`
+            );
             s.demanded--;
           });
 
@@ -48,7 +50,6 @@ class InPort<T> extends PortBase<T> implements Subscription {
           this.enqueue(value);
         } else {
           this.demanded--;
-          // TODO: this should be able to be setImmedaiate, but it can't!!
           this.compSubscriber.onNext(value);
         }
       },
