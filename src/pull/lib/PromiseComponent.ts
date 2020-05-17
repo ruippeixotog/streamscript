@@ -3,19 +3,27 @@ import Deferred from "../../util/Deferred";
 
 abstract class PromiseComponent<Ins extends unknown[], Out> extends BaseComponent<Ins, [Out]> {
   private inPromises: Deferred<IteratorResult<Ins[number]>>[][];
-  private outCancelled = false;
+  private inErrors: (Error | undefined)[];
 
   constructor() {
     super();
     this.inPromises = this.spec.ins.map(() => []);
+    this.inErrors = this.spec.ins.map(() => undefined);
   }
 
   abstract processAsync(): Promise<IteratorResult<Out>>;
 
   pullAsync(idx: number): Promise<IteratorResult<Ins[number]>> {
     const deferred = new Deferred<IteratorResult<Ins[number]>>();
-    this.inPort(idx).request(1);
-    this.inPromises[idx].push(deferred);
+
+    if (!this.inPort(idx).isTerminated()) {
+      this.inPort(idx).request(1);
+      this.inPromises[idx].push(deferred);
+    } else if (this.inErrors[idx]) {
+      deferred.reject(this.inErrors[idx]);
+    } else {
+      deferred.resolve({ value: undefined, done: true });
+    }
     return deferred.promise;
   }
 
@@ -24,12 +32,15 @@ abstract class PromiseComponent<Ins extends unknown[], Out> extends BaseComponen
   }
 
   onError(idx: number, err: Error): void {
-    this.inPromises[idx].shift()?.reject(err);
+    this.inErrors[idx] = err;
+    this.inPromises[idx].forEach(p => p.reject(err));
+    this.inPromises[idx] = [];
     super.onError(idx, err);
   }
 
   onComplete(idx: number): void {
-    this.inPromises[idx].shift()?.resolve({ value: undefined, done: true });
+    this.inPromises[idx].forEach(p => p.resolve({ value: undefined, done: true }));
+    this.inPromises[idx] = [];
     super.onComplete(idx);
   }
 
@@ -37,15 +48,6 @@ abstract class PromiseComponent<Ins extends unknown[], Out> extends BaseComponen
     for (let i = 0; i < n; i++) {
       this.outPort(idx).sendAsync(this.processAsync());
     }
-  }
-
-  onCancel(idx: number): void {
-    super.onCancel(idx);
-    this.outCancelled = true;
-  }
-
-  terminate(): void {
-    super.terminate();
   }
 }
 

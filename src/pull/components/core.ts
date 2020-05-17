@@ -274,8 +274,8 @@ export class FromArray<T> extends BaseComponent<[T[]], [T]> {
       this.outPort(idx).send(this.buffer?.shift() as T);
       n--;
     }
-    if (this.buffer.length === 0 && this.inPort(idx).subscriptionCount() === 0) {
-      super.onComplete(idx);
+    if (this.buffer.length === 0 && this.inPort(0).subscriptionCount() === 0) {
+      super.onComplete(0);
       return;
     }
     if (n > 0) {
