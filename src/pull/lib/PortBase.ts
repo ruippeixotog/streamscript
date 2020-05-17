@@ -13,10 +13,16 @@ class PortBase<T> {
   private whenTerminatedHandler: Deferred<void> = new Deferred();
 
   schedule(f: () => unknown): void {
+    if (this.state === "draining_jobs" || this.state === "terminated") {
+      return;
+    }
     this.asyncJobs.add(f);
   }
 
   scheduleAsync(f: () => Promise<unknown>): void {
+    if (this.state === "draining_jobs" || this.state === "terminated") {
+      return;
+    }
     this.asyncJobs.addAsync(f);
   }
 

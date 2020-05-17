@@ -29,15 +29,19 @@ class OutPort<T> extends PortBase<T> implements Publisher<T> {
           .filter(s0 => s0.ref === subscriber)
           .forEach(s0 => s0.demand += n);
 
-        const sharedDemand =
-            this.subscribers.reduce(
-              (acc, s) => Math.min(acc, s.demand),
-              Number.MAX_SAFE_INTEGER
-            );
+        let sharedDemand = this.subscribers.reduce(
+          (acc, s) => Math.min(acc, s.demand),
+          Number.MAX_SAFE_INTEGER
+        );
 
+        this.subscribers.forEach(s => s.demand -= sharedDemand);
+        this.demand += sharedDemand;
+
+        while (sharedDemand > 0 && this.queueSize() > 0) {
+          this._sendInternal(this.dequeque() as T);
+          sharedDemand--;
+        }
         if (sharedDemand > 0) {
-          this.subscribers.forEach(s => s.demand -= sharedDemand);
-          this.demand += sharedDemand;
           this.compSubscription.request(sharedDemand);
         }
       },
@@ -61,8 +65,7 @@ class OutPort<T> extends PortBase<T> implements Publisher<T> {
     if (this.state !== "active" || this.demand <= 0) {
       throw new Error(`${this.name}: Illegal send on out port: ${t}`);
     }
-    this.subscribers.forEach(s => this.schedule(() => s.ref.onNext(t)));
-    this.demand--;
+    this._sendInternal(t);
   }
 
   complete(): void {
@@ -79,12 +82,21 @@ class OutPort<T> extends PortBase<T> implements Publisher<T> {
     this._startDrainSimple(err);
   }
 
+  sendOrEnqueue(t: T): void {
+    this.demand > 0 ? this.send(t) : this.enqueue(t);
+  }
+
   sendAsync(promise: Promise<IteratorResult<T>>): void {
     this.scheduleAsync(() =>
       promise
         .then(v => v.done ? this.complete() : this.send(v.value))
         .catch(err => this.error(err))
     );
+  }
+
+  private _sendInternal(t: T): void {
+    this.subscribers.forEach(s => this.schedule(() => s.ref.onNext(t)));
+    this.demand--;
   }
 
   private _startDrainSimple(err?: Error): void {

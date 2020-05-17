@@ -157,30 +157,25 @@ export class Buffer<T> extends BaseComponent<[T, number], [T]> {
   static spec = { ins: ["in", "n"], outs: ["out"] };
 
   private bufSize = 0;
-  private buffer: T[] = [];
 
   onNext<K extends number & keyof [T, number]>(idx: number, value: T | number): void {
     if (idx === 1) {
       this.bufSize = value as number;
       this.inPort(1).request(1);
     } else {
-      if (this.outPort(0).requested() === 0) this.buffer.push(value as T);
-      else this.outPort(0).send(value as T);
+      this.outPort(0).sendOrEnqueue(value as T);
     }
     this.adjustDemanded();
   }
 
   onRequest<K extends number & keyof [T]>(idx: number, n: number): void {
-    while (n > 0 && this.buffer.length > 0) {
-      this.outPort(0).send(this.buffer.shift() as T);
-      n--;
-    }
     this.adjustDemanded();
   }
 
   adjustDemanded(): void {
-    if (this.inPort(0).requested() < this.outPort(0).requested() + this.bufSize) {
-      this.inPort(0).request(this.outPort(0).requested() - this.inPort(0).requested() + this.bufSize);
+    const demandDiff = this.outPort(0).requested() + this.bufSize - this.inPort(0).requested();
+    if (demandDiff > 0) {
+      this.inPort(0).request(demandDiff);
     }
   }
 
@@ -254,33 +249,12 @@ export class ToArray<T> extends BaseComponent<[T], [T[]]> {
 export class FromArray<T> extends BaseComponent<[T[]], [T]> {
   static spec = { ins: ["in"], outs: ["out"] };
 
-  buffer: T[] = [];
-
   onNext(idx: number, value: T[]): void {
-    while (this.outPort(0).requested() > 0 && value.length > 0) {
-      this.outPort(idx).send(value.shift() as T);
-    }
-    this.buffer = this.buffer.concat(value);
-  }
-
-  onComplete(idx: number): void {
-    if (this.buffer.length === 0) {
-      super.onComplete(idx);
-    }
+    value.forEach(t => this.outPort(idx).sendOrEnqueue(t));
   }
 
   onRequest(idx: number, n: number): void {
-    while (n > 0 && this.buffer.length > 0) {
-      this.outPort(idx).send(this.buffer?.shift() as T);
-      n--;
-    }
-    if (this.buffer.length === 0 && this.inPort(0).subscriptionCount() === 0) {
-      super.onComplete(0);
-      return;
-    }
-    if (n > 0) {
-      this.inPort(0).request(1);
-    }
+    this.inPort(0).request(1);
   }
 }
 
