@@ -5,7 +5,7 @@
   "keywords": [],
   "repository": {
     "type": "git",
-    "url": "https://github.com/ruippeixotog/botwars.git"
+    "url": "https://github.com/ruippeixotog/streamscript.git"
   },
   "author": "Rui Gonçalves <ruippeixotog@gmail.com>",
   "license": "MIT",
@@ -41,9 +41,10 @@
     "typescript": "^3.8.3"
   },
   "scripts": {
-    "start": "babel-node --extensions \".js,.ts\" src/main.ts",
-    "lint": "eslint src --ext .js,.ts,.tsx",
+    "start": "babel-node --extensions '.js,.ts' src/main.ts",
+    "lint": "eslint src --ext '.js,.ts'",
     "tsc": "tsc",
-    "test": "mocha -r ts-node/register test/**/*.ts"
+    "test": "mocha -r ts-node/register test/**/*.ts",
+    "validate": "set -x; npm run lint && npm run tsc && npm test"
   }
 }
