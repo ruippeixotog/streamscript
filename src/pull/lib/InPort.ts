@@ -1,11 +1,10 @@
 import { Subscriber, Subscription } from "../types";
 import PortBase from "./PortBase";
 
-class InPort<T> extends PortBase implements Subscription {
+class InPort<T> extends PortBase<T> implements Subscription {
   private name: string;
   private compSubscriber: Subscriber<T>;
 
-  private queue: T[] = [];
   private demanded = 0;
   private subscriptions: { ref: Subscription; demanded: number }[] = [];
 
@@ -46,7 +45,7 @@ class InPort<T> extends PortBase implements Subscription {
           });
 
         if (this.demanded === 0) {
-          this.queue.push(value);
+          this.enqueue(value);
         } else {
           this.demanded--;
           // TODO: this should be able to be setImmedaiate, but it can't!!
@@ -60,27 +59,29 @@ class InPort<T> extends PortBase implements Subscription {
         }
         this.subscriptions =
           this.subscriptions.filter(s => localSubs.indexOf(s.ref) === -1);
-        this._maybeComplete();
+
+        if (this.subscriptions.length === 0) {
+          this._startDrainSimple();
+        }
       },
 
       onError: err => {
         if (this.state !== "active") {
           return;
         }
-        this.subscriptions =
-          this.subscriptions.filter(s => localSubs.indexOf(s.ref) === -1);
-        this._startDrain(() => this.compSubscriber.onError(err));
+        this.subscriptions = [];
+        this._startDrainSimple(err);
       }
     };
   }
 
   request(n: number): void {
-    while (n > 0 && this.queue.length > 0) {
-      this.compSubscriber.onNext(this.queue.shift() as T);
+    while (n > 0 && this.queueSize() > 0) {
+      this.compSubscriber.onNext(this.dequeque() as T);
       n--;
     }
-    this.asyncJobs.add(() => {
-      if (!this._maybeComplete()) {
+    this.schedule(() => {
+      if (this.state === "active") {
         const innerDemanded = this.demanded += n;
         this.subscriptions
           .filter(s => s.demanded < innerDemanded)
@@ -97,15 +98,15 @@ class InPort<T> extends PortBase implements Subscription {
   }
 
   cancel(): void {
-    this.subscriptions.forEach(s => this.asyncJobs.add(() => s.ref.cancel()));
+    this.subscriptions.forEach(s => this.schedule(() => s.ref.cancel()));
   }
 
-  private _maybeComplete(): boolean {
-    if (this.state === "active" && this.subscriptions.length === 0 && this.queue.length === 0) {
-      this._startDrain(() => this.compSubscriber.onComplete());
-      return true;
-    }
-    return false;
+  private _startDrainSimple(err?: Error): void {
+    this.cancel();
+    this._startDrain(
+      () => {},
+      () => err ? this.compSubscriber.onError(err) : this.compSubscriber.onComplete()
+    );
   }
 }
 

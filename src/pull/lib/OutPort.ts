@@ -1,7 +1,7 @@
 import { Publisher, Subscriber, Subscription } from "../types";
 import PortBase from "./PortBase";
 
-class OutPort<T> extends PortBase implements Publisher<T> {
+class OutPort<T> extends PortBase<T> implements Publisher<T> {
   private name: string;
   private compSubscription: Subscription;
 
@@ -42,11 +42,11 @@ class OutPort<T> extends PortBase implements Publisher<T> {
         }
       },
       cancel: () => {
-        this.asyncJobs.add(() => subscriber.onComplete());
-        const newSubscribers = this.subscribers =
+        this.schedule(() => subscriber.onComplete());
+        this.subscribers =
             this.subscribers.filter(s0 => s0.ref !== subscriber);
 
-        if (newSubscribers.length === 0) {
+        if (this.subscribers.length === 0) {
           this._startDrainSimple();
         }
       }
@@ -61,7 +61,7 @@ class OutPort<T> extends PortBase implements Publisher<T> {
     if (this.state !== "active" || this.demand <= 0) {
       throw new Error(`${this.name}: Illegal send on out port: ${t}`);
     }
-    this.subscribers.forEach(s => this.asyncJobs.add(() => s.ref.onNext(t)));
+    this.subscribers.forEach(s => this.schedule(() => s.ref.onNext(t)));
     this.demand--;
   }
 
@@ -69,10 +69,6 @@ class OutPort<T> extends PortBase implements Publisher<T> {
     // if(!this.active) {
     //   throw new Error("Illegal complete on out port");
     // }
-    this.subscribers.forEach(s =>
-      this.asyncJobs.add(() => s.ref.onComplete())
-    );
-    this.subscribers = [];
     this._startDrainSimple();
   }
 
@@ -80,23 +76,28 @@ class OutPort<T> extends PortBase implements Publisher<T> {
     if (this.state !== "active") {
       throw new Error("Illegal error on out port");
     }
-    this.subscribers.forEach(s =>
-      this.asyncJobs.add(() => s.ref.onError(err))
-    );
-    this.subscribers = [];
-    this._startDrainSimple();
+    this._startDrainSimple(err);
   }
 
   sendAsync(promise: Promise<IteratorResult<T>>): void {
-    this.asyncJobs.addAsync(() =>
+    this.scheduleAsync(() =>
       promise
         .then(v => v.done ? this.complete() : this.send(v.value))
         .catch(err => this.error(err))
     );
   }
 
-  private _startDrainSimple(): void {
-    return this._startDrain(() => this.compSubscription.cancel());
+  private _startDrainSimple(err?: Error): void {
+    this._startDrain(
+      () => {
+        this.subscribers.forEach(s =>
+          this.schedule(() => err ? s.ref.onError(err) : s.ref.onComplete())
+        );
+        // TODO: check if this line is needed
+        this.subscribers = [];
+      },
+      () => this.compSubscription.cancel()
+    );
   }
 }
 
