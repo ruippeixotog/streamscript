@@ -62,27 +62,15 @@ export class Repeat<T> extends BaseComponent<[], [T]> {
   }
 }
 
-export class Kick<T> extends BaseComponent<[unknown, T], [T]> {
-  static spec = { ins: ["sig", "data"], outs: ["out"] };
+export class Kick<T> extends GeneratorComponent<[T, unknown], T> {
+  static spec = { ins: ["in", "sig"], outs: ["out"] };
 
-  private data?: T;
-
-  onNext<K extends number & keyof [unknown, T]>(idx: K, value: T): void {
-    if (idx === 1) {
-      this.data = value;
-      this.inPort(1).request(1);
-    } else if (this.data) {
-      this.outPort(0).send(this.data);
+  async* processGenerator(input: AsyncGenerator<T>, sigInput: AsyncGenerator): AsyncGenerator<T> {
+    for await (const _ of sigInput) {
+      const { done, value } = await input.next();
+      if (done) return;
+      yield value;
     }
-  }
-
-  onRequest<K extends number & keyof [T]>(idx: K, n: number): void {
-    this.inPort(0).request(n);
-  }
-
-  start(): void {
-    super.start();
-    this.inPort(1).request(1);
   }
 }
 
@@ -194,7 +182,7 @@ export class Zip<T, U> extends PureComponent<[T, U], [T, U]> {
 export class Nth<T> extends BaseComponent<[T, number], [T]> {
   static spec = { ins: ["in", "n"], outs: ["out"] };
 
-  private n?: number = undefined;
+  private n?: number;
   private requested = false;
 
   onNext<K extends number & keyof [T, number]>(idx: number, value: T | number): void {
@@ -251,8 +239,32 @@ export class FromArray<T> extends GeneratorComponent<[T[]], T> {
   }
 }
 
-//
-// // export const CombineLatest = pipe(2, 2, (arg1, arg2) => {
-// //   const latest = combineLatest([arg1, arg2]);
-// //   return [latest.pipe(pluck(0)), latest.pipe(pluck(1))];
-// // });
+export class CombineLatest<T, U> extends BaseComponent<[T, U], [[T, U]]> {
+  static spec = { ins: ["in1", "in2"], outs: ["out"] };
+
+  latest1?: T;
+  latest2?: U;
+
+  onNext<K extends number & keyof [T, U]>(idx: K, value: T | U): void {
+    if (idx === 0) this.latest1 = value as T;
+    else this.latest2 = value as U;
+
+    if (this.latest1 !== undefined && this.latest2 !== undefined) {
+      this.outPort(0).sendOrEnqueue([this.latest1, this.latest2]);
+    }
+  }
+
+  onRequest<K extends number & keyof [[T, U]]>(idx: K, n: number): void {
+    this.inPort(0).request(n);
+    this.inPort(1).request(n);
+  }
+
+  protected shouldTerminate(): boolean {
+    const insTerminated =
+      this.latest1 === undefined && this.inPort(0).isTerminated() ||
+      this.latest2 === undefined && this.inPort(1).isTerminated() ||
+      this.inPort(0).isTerminated() && this.inPort(1).isTerminated();
+
+    return insTerminated || this.outPort(0).isTerminated();
+  }
+}

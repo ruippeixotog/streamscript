@@ -2,8 +2,8 @@ rep(in) => out {
   out <- extern("core/Repeat") <- in
 }
 
-kick(signal, data) => out {
-  out <- extern("core/Kick") <- (signal, data)
+kick(in, sig) => out {
+  out <- extern("core/Kick") <- (in, sig)
 }
 
 interval(period) => out {
@@ -34,12 +34,6 @@ fromArray(in) => out {
   out <- extern("core/FromArray") <- in
 }
 
-/*
-delay(x, delay) => out {
-  out <- extern("core/Delay") <- (x, delay)
+combineLatest(in1, in2) => out {
+  out <- extern("core/CombineLatest") <- (in1, in2)
 }
-
-combineLatest(in1, in2) => (out1, out2) {
-  (out1, out2) <- extern("core/CombineLatest") <- (in1, in2)
-}
-*/
