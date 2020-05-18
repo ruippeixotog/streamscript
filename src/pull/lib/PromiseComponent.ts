@@ -45,8 +45,13 @@ abstract class PromiseComponent<Ins extends unknown[], Out> extends BaseComponen
   }
 
   onRequest(idx: number, n: number): void {
+    const outPort = this.outPort(0);
     for (let i = 0; i < n; i++) {
-      this.outPort(idx).sendAsync(this.processAsync());
+      outPort.scheduleJobAsync(() =>
+        this.processAsync()
+          .then(v => v.done ? outPort.complete() : outPort.send(v.value))
+          .catch(err => outPort.error(err))
+      );
     }
   }
 }

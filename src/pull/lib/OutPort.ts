@@ -47,7 +47,7 @@ class OutPort<T> extends PortBase<T> implements Publisher<T> {
         }
       },
       cancel: () => {
-        this.schedule(() => subscriber.onComplete());
+        this.scheduleMessage(() => subscriber.onComplete());
         this.subscribers =
             this.subscribers.filter(s0 => s0.ref !== subscriber);
 
@@ -64,19 +64,25 @@ class OutPort<T> extends PortBase<T> implements Publisher<T> {
 
   send(t: T): void {
     assert(
-      this.state === "active" && this.demand > 0,
+      this.state === "active" || this.state === "draining_jobs" && this.demand > 0,
       `${this.name}: Illegal send on out port (${JSON.stringify(t)})`
     );
     this._sendInternal(t);
   }
 
   complete(): void {
-    assert(this.state === "active", `${this.name}: Illegal complete on inactive out port`);
+    assert(
+      this.state === "active" || this.state === "draining_jobs",
+      `${this.name}: Illegal complete on inactive out port`
+    );
     this._startDrainSimple();
   }
 
   error(err: Error): void {
-    assert(this.state === "active", `${this.name}: Illegal error on inactive out port`);
+    assert(
+      this.state === "active" || this.state === "draining_jobs",
+      `${this.name}: Illegal error on inactive out port`
+    );
     this._startDrainSimple(err);
   }
 
@@ -84,16 +90,8 @@ class OutPort<T> extends PortBase<T> implements Publisher<T> {
     this.demand > 0 ? this.send(t) : this.enqueue(t);
   }
 
-  sendAsync(promise: Promise<IteratorResult<T>>): void {
-    this.scheduleAsync(() =>
-      promise
-        .then(v => v.done ? this.complete() : this.send(v.value))
-        .catch(err => this.error(err))
-    );
-  }
-
   private _sendInternal(t: T): void {
-    this.subscribers.forEach(s => this.schedule(() => s.ref.onNext(t)));
+    this.subscribers.forEach(s => this.scheduleMessage(() => s.ref.onNext(t)));
     this.demand--;
   }
 
@@ -101,7 +99,7 @@ class OutPort<T> extends PortBase<T> implements Publisher<T> {
     this._startDrain(
       () => {
         this.subscribers.forEach(s =>
-          this.schedule(() => err ? s.ref.onError(err) : s.ref.onComplete())
+          this.scheduleMessage(() => err ? s.ref.onError(err) : s.ref.onComplete())
         );
         // TODO: check if this line is needed
         this.subscribers = [];

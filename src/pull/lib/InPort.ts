@@ -81,8 +81,8 @@ class InPort<T> extends PortBase<T> implements Subscription {
       this.compSubscriber.onNext(this.dequeque() as T);
       n--;
     }
-    this.schedule(() => {
-      if (this.state === "active") {
+    this.scheduleMessage(() => {
+      if (this.state === "active" || this.state === "draining_jobs") {
         const innerDemanded = this.demanded += n;
         this.subscriptions
           .filter(s => s.demanded < innerDemanded)
@@ -99,7 +99,7 @@ class InPort<T> extends PortBase<T> implements Subscription {
   }
 
   cancel(): void {
-    this.subscriptions.forEach(s => this.schedule(() => s.ref.cancel()));
+    this.subscriptions.forEach(s => this.scheduleMessage(() => s.ref.cancel()));
   }
 
   private _startDrainSimple(err?: Error): void {
