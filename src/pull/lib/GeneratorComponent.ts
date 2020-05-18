@@ -24,6 +24,10 @@ abstract class GeneratorComponent<Ins extends unknown[], Out> extends PromiseCom
   processAsync(): Promise<IteratorResult<Out>> {
     return this.generator.next();
   }
+
+  protected shouldTerminate(): boolean {
+    return this.outPort(0).isTerminated();
+  }
 }
 
 export default GeneratorComponent;
