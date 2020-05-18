@@ -1,5 +1,6 @@
 import BaseComponent from "../lib/BaseComponent";
 import PureComponent from "../lib/PureComponent";
+import GeneratorComponent from "../lib/GeneratorComponent";
 
 export class Identity<T> extends BaseComponent<[T], [T]> {
   static spec = { ins: ["in"], outs: ["out"] };
@@ -226,62 +227,29 @@ export class Nth<T> extends BaseComponent<[T, number], [T]> {
   }
 }
 
-export class ToArray<T> extends BaseComponent<[T], [T[]]> {
+export class ToArray<T> extends GeneratorComponent<[T], T[]> {
   static spec = { ins: ["in"], outs: ["out"] };
 
-  arr: T[] = [];
-
-  onNext(idx: number, value: T): void {
-    this.arr.push(value);
-    this.inPort(idx).request(1);
-  }
-
-  onComplete(idx: number): void {
-    this.outPort(0).send(this.arr);
-    super.onComplete(idx);
-  }
-
-  onRequest(idx: number, n: number): void {
-    this.inPort(idx).request(1);
+  async* processGenerator(input: AsyncGenerator<T>): AsyncGenerator<T[]> {
+    const arr: T[] = [];
+    for await (const e of input) {
+      arr.push(e);
+    }
+    yield arr;
   }
 }
 
-export class FromArray<T> extends BaseComponent<[T[]], [T]> {
+export class FromArray<T> extends GeneratorComponent<[T[]], T> {
   static spec = { ins: ["in"], outs: ["out"] };
 
-  onNext(idx: number, value: T[]): void {
-    value.forEach(t => this.outPort(idx).sendOrEnqueue(t));
-  }
-
-  onRequest(idx: number, n: number): void {
-    this.inPort(0).request(1);
+  async* processGenerator(input: AsyncGenerator<T[]>): AsyncGenerator<T> {
+    for await (const arr of input) {
+      for (const e of arr) {
+        yield e;
+      }
+    }
   }
 }
-
-// export class ToArray<T> extends GeneratorComponent<[T], T[]> {
-//   static spec = { ins: ["in"], outs: ["out"] };
-//
-//   async* processGenerator(input: AsyncGenerator<T>): AsyncGenerator<T[]> {
-//     const arr: T[] = [];
-//     for await (const e of input) {
-//       arr.push(e);
-//     }
-//     yield arr;
-//   }
-// }
-//
-// export class FromArray<T> extends GeneratorComponent<[T[]], T> {
-//   static spec = { ins: ["in"], outs: ["out"] };
-//
-//   async* processGenerator(input: AsyncGenerator<T[]>): AsyncGenerator<T> {
-//     for await (const arr of input) {
-//       console.log(arr);
-//       for (const e of arr) {
-//         yield e;
-//       }
-//     }
-//   }
-// }
 
 //
 // // export const CombineLatest = pipe(2, 2, (arg1, arg2) => {
