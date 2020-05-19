@@ -22,6 +22,10 @@ zip(in1, in2) => out {
   out <- extern("core/Zip") <- (in1, in2)
 }
 
+unzip(in) => (outL, outR) {
+  (outL, outR) <- (in[rep(0)], in[rep(1)])
+}
+
 nth(in, n) => out {
   out <- extern("core/Nth") <- (in, n)
 }
