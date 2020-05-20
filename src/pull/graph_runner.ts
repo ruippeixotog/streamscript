@@ -2,7 +2,6 @@ import Graph from "../graph";
 import { ComponentStore } from "../types";
 import { Component, Publisher, Subscriber } from "./types";
 import { ComponentClass } from "./component_loader";
-import { Single } from "./components/core";
 import Builder from "./lib/PublisherBuilder";
 import Logger from "./Logger";
 
@@ -32,7 +31,7 @@ function toComponent(graph: Graph, logger: Logger, graphName?: string): Componen
   graph.initials.forEach((value, port) => {
     const toComp = nodeComponents[port.nodeId];
     Builder
-      .from(new Single(value).publisherFor(0))
+      .fromSingle(value).async()
       .tap(...logger.edgeInitialSubscriber(value, port, graphName))
       .to(toComp.subscriberFor(toComp.spec.ins.indexOf(port.portName)));
   });

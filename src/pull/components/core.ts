@@ -14,24 +14,6 @@ export class Identity<T> extends BaseComponent<[T], [T]> {
   }
 }
 
-export class Single<T> extends BaseComponent<[], [T]> {
-  static spec = { ins: [], outs: ["out"] };
-
-  singleValue: T;
-
-  constructor(singleValue: T) {
-    super();
-    this.singleValue = singleValue;
-  }
-
-  onNext<K extends number & keyof []>(idx: K, value: never): void {}
-
-  onRequest<K extends number & keyof [T]>(idx: K, n: number): void {
-    this.outPort(idx).send(this.singleValue);
-    this.terminate();
-  }
-}
-
 export class Repeat<T> extends BaseComponent<[], [T]> {
   static spec = { ins: ["in"], outs: ["out"] };
 

@@ -1,5 +1,27 @@
 import { Publisher, Subscriber } from "../types";
 
+export class Single<T> implements Publisher<T> {
+  private singleValue: T;
+
+  constructor(singleValue: T) {
+    this.singleValue = singleValue;
+  }
+
+  subscribe(s: Subscriber<T>): void {
+    let cancelled = false;
+    s.onSubscribe({
+      request: () => {
+        s.onNext(this.singleValue);
+        s.onComplete();
+      },
+      cancel: () => {
+        cancelled = true;
+        s.onComplete();
+      }
+    });
+  }
+}
+
 class Map<T, U> implements Publisher<U> {
   private inner: Publisher<T>;
   private func: (t: T) => U;
@@ -45,6 +67,23 @@ class Tap<T> implements Publisher<T> {
   }
 }
 
+class Async<T> implements Publisher<T> {
+  private inner: Publisher<T>;
+
+  constructor(inner: Publisher<T>) {
+    this.inner = inner;
+  }
+
+  subscribe(s: Subscriber<T>): void {
+    this.inner.subscribe({
+      onSubscribe: s0 => s.onSubscribe(s0),
+      onNext: t => setImmediate(() => s.onNext(t)),
+      onError: err => setImmediate(() => s.onError(err)),
+      onComplete: () => setImmediate(() => s.onComplete())
+    });
+  }
+}
+
 class Builder<T> {
   publisher: Publisher<T>;
 
@@ -60,6 +99,10 @@ class Builder<T> {
     return new Builder(new Tap(this.publisher, sub, onRequest, onCancel));
   }
 
+  async(): Builder<T> {
+    return new Builder(new Async(this.publisher));
+  }
+
   build(): Publisher<T> {
     return this.publisher;
   }
@@ -73,4 +116,8 @@ export function from<T>(publisher: Publisher<T>): Builder<T> {
   return new Builder(publisher);
 }
 
-export default { from };
+export function fromSingle<T>(singleValue: T): Builder<T> {
+  return new Builder(new Single(singleValue));
+}
+
+export default { from, fromSingle };
