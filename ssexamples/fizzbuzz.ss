@@ -2,7 +2,7 @@ import io
 
 io.stdout <- "Start!"
 
-counter <- interval(1000)
+counter <- kick(nats(), interval(1000))
 
 io.stdout <- if(
   counter % rep(3) == rep(0),

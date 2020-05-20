@@ -1,10 +1,17 @@
-
 /*
 Emits the last value received repeatedly when there is demand and once the first element is received.
 Completes when downstream cancels.
 */
 rep(in) => out {
   out <- extern("core/Repeat") <- in
+}
+
+/*
+Emits every time there is demand.
+Completes when downstream cancels.
+*/
+nats() => out {
+  out <- extern("core/Nats")
 }
 
 kick(in, sig) => out {

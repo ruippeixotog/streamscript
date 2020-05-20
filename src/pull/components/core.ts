@@ -74,12 +74,11 @@ export class Kick<T> extends GeneratorComponent<[T, unknown], T> {
   }
 }
 
-export class Interval extends BaseComponent<[number], [number]> {
+export class Interval extends BaseComponent<[number], [boolean]> {
   static spec = { ins: ["period"], outs: ["out"] };
 
   private currPeriod?: number;
   private demand = 0;
-  private next = 0;
   private ready = false;
 
   onNext<K extends number & keyof [number]>(idx: K, value: number): void {
@@ -107,7 +106,7 @@ export class Interval extends BaseComponent<[number], [number]> {
 
   onReady(): void {
     if (this.demand > 0) {
-      this.outPort(0).send(this.next++);
+      this.outPort(0).send(true);
       this.demand--;
       this.schedule(this.currPeriod);
     } else {
@@ -123,6 +122,18 @@ export class Interval extends BaseComponent<[number], [number]> {
   protected shouldTerminate(): boolean {
     return this.currPeriod === undefined && this.inPort(0).isTerminated() ||
       this.outPort(0).isTerminated();
+  }
+}
+
+export class Nats extends BaseComponent<[], [number]> {
+  static spec = { ins: [], outs: ["out"] };
+
+  private next = 1;
+
+  onNext<K extends number & keyof []>(idx: K, value: never): void {}
+
+  onRequest<K extends number & keyof [number]>(idx: K, n: number): void {
+    this.outPort(idx).send(this.next++);
   }
 }
 
