@@ -84,6 +84,16 @@ fromArray(in) => out {
   out <- extern("core/FromArray") <- in
 }
 
+/*
+Emits when one of the inputs has an element available.
+Backpressures when downstream backpressures.
+Completes when all upstreams complete.
+*/
+merge(in1, in2) => out {
+  out <- in1
+  out <- in2
+}
+
 combineLatest(in1, in2) => out {
   out <- extern("core/CombineLatest") <- (in1, in2)
 }

@@ -1,4 +1,6 @@
 import BaseComponent from "../lib/BaseComponent";
+import readline from "readline";
+import GeneratorComponent from "../lib/GeneratorComponent";
 
 export class Output<T> extends BaseComponent<[T], []> {
   static spec = { ins: ["in1"], outs: [] };
@@ -23,5 +25,27 @@ export class Output<T> extends BaseComponent<[T], []> {
   terminate(): void {
     super.terminate();
     this.active = false;
+  }
+}
+
+export class Input<T> extends GeneratorComponent<[], string> {
+  static spec = { ins: [], outs: ["out"] };
+
+  private rt: readline.Interface;
+
+  async* processGenerator(): AsyncGenerator<string> {
+    for await (const line of this.rt) {
+      yield line;
+    }
+  }
+
+  start(): void {
+    this.rt = readline.createInterface(process.stdin);
+    super.start();
+  }
+
+  terminate(err?: Error): void {
+    this.rt.close();
+    super.terminate(err);
   }
 }
