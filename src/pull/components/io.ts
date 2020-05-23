@@ -7,14 +7,14 @@ export class Output<T> extends BaseComponent<[T], []> {
 
   active = false;
 
-  onNext<K>(idx: K, value: T): void {
+  onNext(idx: number, value: T): void {
     console.log(value);
     if (this.active) {
       this.inPort(0).request(1);
     }
   }
 
-  onRequest<K>(idx: K, n: number): void {}
+  onRequest(idx: number, n: number): void {}
 
   start(): void {
     super.start();

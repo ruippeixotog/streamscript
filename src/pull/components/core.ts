@@ -5,27 +5,27 @@ import GeneratorComponent from "../lib/GeneratorComponent";
 export class Identity<T> extends BaseComponent<[T], [T]> {
   static spec = { ins: ["in"], outs: ["out"] };
 
-  onNext<K extends number & keyof [T]>(idx: K, value: T): void {
+  onNext(idx: number, value: T): void {
     this.outPort(idx).send(value);
   }
 
-  onRequest<K extends number & keyof [T]>(idx: K, n: number): void {
+  onRequest(idx: number, n: number): void {
     this.inPort(idx).request(n);
   }
 }
 
-export class Repeat<T> extends BaseComponent<[], [T]> {
+export class Repeat<T> extends BaseComponent<[T], [T]> {
   static spec = { ins: ["in"], outs: ["out"] };
 
   repValue?: T;
 
-  onNext<K extends number & keyof []>(idx: K, value: never): void {
+  onNext(idx: number, value: T): void {
     this.repValue = value;
     this.onRequest(0, this.outPort(0).requested());
     this.inPort(0).request(1);
   }
 
-  onRequest<K extends number & keyof [T]>(idx: K, n: number): void {
+  onRequest(idx: number, n: number): void {
     if (this.repValue !== undefined) {
       for (let i = 0; i < n; i++) {
         this.outPort(idx).send(this.repValue);
@@ -63,7 +63,7 @@ export class Interval extends BaseComponent<[number], [boolean]> {
   private demand = 0;
   private ready = false;
 
-  onNext<K extends number & keyof [number]>(idx: K, value: number): void {
+  onNext(idx: number, value: number): void {
     if (this.currPeriod === undefined) {
       this.schedule(value);
     }
@@ -71,7 +71,7 @@ export class Interval extends BaseComponent<[number], [boolean]> {
     this.inPort(0).request(1);
   }
 
-  onRequest<K extends number & keyof [number]>(idx: K, n: number): void {
+  onRequest(idx: number, n: number): void {
     this.demand += n;
     if (this.ready) {
       this.onReady();
@@ -112,9 +112,9 @@ export class Nats extends BaseComponent<[], [number]> {
 
   private next = 1;
 
-  onNext<K extends number & keyof []>(idx: K, value: never): void {}
+  onNext(idx: number, value: never): void {}
 
-  onRequest<K extends number & keyof [number]>(idx: K, n: number): void {
+  onRequest(idx: number, n: number): void {
     this.outPort(idx).send(this.next++);
   }
 }
@@ -122,7 +122,7 @@ export class Nats extends BaseComponent<[], [number]> {
 export class If<T> extends BaseComponent<[boolean, T, T], [T]> {
   static spec = { ins: ["cond", "then", "else"], outs: ["out"] };
 
-  onNext<K extends number & keyof [boolean, T, T]>(idx: K, value: boolean | T): void {
+  onNext(idx: number, value: boolean | T): void {
     if (idx === 0) {
       this.inPort(value ? 1 : 2).request(1);
     } else {
@@ -130,7 +130,7 @@ export class If<T> extends BaseComponent<[boolean, T, T], [T]> {
     }
   }
 
-  onRequest<K extends number & keyof [T]>(idx: K, n: number): void {
+  onRequest(idx: number, n: number): void {
     this.inPort(0).request(n);
   }
 }
@@ -140,7 +140,7 @@ export class Buffer<T> extends BaseComponent<[T, number], [T]> {
 
   private bufSize = 0;
 
-  onNext<K extends number & keyof [T, number]>(idx: number, value: T | number): void {
+  onNext(idx: number, value: T | number): void {
     if (idx === 1) {
       this.bufSize = value as number;
       this.inPort(1).request(1);
@@ -150,7 +150,7 @@ export class Buffer<T> extends BaseComponent<[T, number], [T]> {
     this.adjustDemanded();
   }
 
-  onRequest<K extends number & keyof [T]>(idx: number, n: number): void {
+  onRequest(idx: number, n: number): void {
     this.adjustDemanded();
   }
 
@@ -178,7 +178,7 @@ export class Nth<T> extends BaseComponent<[T, number], [T]> {
   private n?: number;
   private requested = false;
 
-  onNext<K extends number & keyof [T, number]>(idx: number, value: T | number): void {
+  onNext(idx: number, value: T | number): void {
     if (idx === 1) {
       this.n = value as number;
       this.inPort(1).cancel();
@@ -195,7 +195,7 @@ export class Nth<T> extends BaseComponent<[T, number], [T]> {
     }
   }
 
-  onRequest<K extends number & keyof [T]>(idx: number, n: number): void {
+  onRequest(idx: number, n: number): void {
     if (!this.requested && this.n !== undefined) {
       this.inPort(0).request(this.n + 1);
     }
@@ -238,7 +238,7 @@ export class CombineLatest<T, U> extends BaseComponent<[T, U], [[T, U]]> {
   latest1?: T;
   latest2?: U;
 
-  onNext<K extends number & keyof [T, U]>(idx: K, value: T | U): void {
+  onNext(idx: number, value: T | U): void {
     if (idx === 0) this.latest1 = value as T;
     else this.latest2 = value as U;
 
@@ -247,7 +247,7 @@ export class CombineLatest<T, U> extends BaseComponent<[T, U], [[T, U]]> {
     }
   }
 
-  onRequest<K extends number & keyof [[T, U]]>(idx: K, n: number): void {
+  onRequest(idx: number, n: number): void {
     this.inPort(0).request(n);
     this.inPort(1).request(n);
   }
