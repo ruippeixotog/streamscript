@@ -24,7 +24,6 @@
   "rules": {
     "eqeqeq": [2, "smart"],
     "no-var": 2,
-    "valid-jsdoc": 2,
 
     "indent": [1, 2, { "SwitchCase": 1 }],
     "keyword-spacing": 1,
@@ -38,11 +37,11 @@
     "space-before-function-paren": [1, { "anonymous": "always", "named": "never" }],
     "space-in-parens": [1, "never"],
     "@typescript-eslint/camelcase": [1, { "properties": "always" }],
+    "@typescript-eslint/no-unused-vars": [1, { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }],
 
     "no-console": 0,
     "@typescript-eslint/ban-ts-ignore": 0,
     "@typescript-eslint/explicit-function-return-type": [1, { "allowExpressions": true }],
-    "@typescript-eslint/no-empty-function": 0,
-    "@typescript-eslint/no-unused-vars": 0
+    "@typescript-eslint/no-empty-function": 0
   }
 }

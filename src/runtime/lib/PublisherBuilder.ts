@@ -11,6 +11,7 @@ export class Single<T> implements Publisher<T> {
     let cancelled = false;
     s.onSubscribe({
       request: () => {
+        if (cancelled) return;
         s.onNext(this.singleValue);
         s.onComplete();
       },

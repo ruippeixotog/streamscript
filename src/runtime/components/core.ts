@@ -112,10 +112,12 @@ export class Nats extends BaseComponent<[], [number]> {
 
   private next = 1;
 
-  onNext(idx: number, value: never): void {}
+  onNext(_idx: number, _value: never): void {}
 
   onRequest(idx: number, n: number): void {
-    this.outPort(idx).send(this.next++);
+    while (n--) {
+      this.outPort(idx).send(this.next++);
+    }
   }
 }
 
@@ -150,7 +152,7 @@ export class Buffer<T> extends BaseComponent<[T, number], [T]> {
     this.adjustDemanded();
   }
 
-  onRequest(idx: number, n: number): void {
+  onRequest(_idx: number, _n: number): void {
     this.adjustDemanded();
   }
 
@@ -195,7 +197,7 @@ export class Nth<T> extends BaseComponent<[T, number], [T]> {
     }
   }
 
-  onRequest(idx: number, n: number): void {
+  onRequest(_idx: number, _n: number): void {
     if (!this.requested && this.n !== undefined) {
       this.inPort(0).request(this.n + 1);
     }

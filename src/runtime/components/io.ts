@@ -14,7 +14,7 @@ export class Output<T> extends BaseComponent<[T], []> {
     }
   }
 
-  onRequest(idx: number, n: number): void {}
+  onRequest(_idx: number, _n: number): void {}
 
   start(): void {
     super.start();

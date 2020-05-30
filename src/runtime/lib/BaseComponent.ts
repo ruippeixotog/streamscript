@@ -20,13 +20,13 @@ abstract class BaseComponent<Ins extends unknown[], Outs extends unknown[]> impl
     this.terminate(err);
   }
 
-  onComplete(idx: number): void {
+  onComplete(_idx: number): void {
     if (this.shouldTerminate()) {
       this.terminate();
     }
   }
 
-  onCancel(idx: number): void {
+  onCancel(_idx: number): void {
     if (this.shouldTerminate()) {
       this.terminate();
     }

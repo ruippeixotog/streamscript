@@ -1,4 +1,4 @@
-import {Subscriber, Subscription} from "../../../src/runtime/types";
+import { Subscriber, Subscription } from "../../../src/runtime/types";
 
 export type SubscriberStatus =
   "inactive" | "active" | "completed" | "errored";
@@ -20,7 +20,7 @@ class MockSubscriber<T> implements Subscriber<T> {
     this.status = "completed";
   }
 
-  onError(e: Error): void {
+  onError(_e: Error): void {
     this.status = "errored";
   }
 
