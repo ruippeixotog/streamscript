@@ -174,7 +174,7 @@ export class Zip<T, U> extends PureComponent<[T, U], [T, U]> {
   process = (a1: T, a2: U): [T, U] => [a1, a2];
 }
 
-export class Nth<T> extends BaseComponent<[T, number], [T]> {
+export class Take<T> extends BaseComponent<[T, number], [T]> {
   static spec = { ins: ["in", "n"], outs: ["out"] };
 
   private n?: number;
@@ -185,21 +185,56 @@ export class Nth<T> extends BaseComponent<[T, number], [T]> {
       this.n = value as number;
       this.inPort(1).cancel();
       if (this.requested) {
-        this.inPort(0).request(this.n + 1);
+        if (this.n === 0) this.outPort(0).complete();
+        else this.inPort(0).request(this.n);
       }
     } else {
-      if (this.n === 0) {
-        this.outPort(idx).send(value as T);
-        this.terminate();
-      } else {
-        (this.n as number)--;
+      this.outPort(idx).send(value as T);
+      if (--(this.n as number) === 0) {
+        this.outPort(0).complete();
       }
     }
   }
 
   onRequest(_idx: number, _n: number): void {
     if (!this.requested && this.n !== undefined) {
-      this.inPort(0).request(this.n + 1);
+      if (this.n === 0) this.outPort(0).complete();
+      else this.inPort(0).request(this.n);
+    }
+    this.requested = true;
+  }
+
+  start(): void {
+    super.start();
+    this.inPort(1).request(1);
+  }
+}
+
+export class Drop<T> extends BaseComponent<[T, number], [T]> {
+  static spec = { ins: ["in", "n"], outs: ["out"] };
+
+  private n?: number;
+  private requested = false;
+
+  onNext(idx: number, value: T | number): void {
+    if (idx === 1) {
+      this.n = value as number;
+      this.inPort(1).cancel();
+      if (this.requested) {
+        this.inPort(0).request(this.n + this.outPort(0).requested());
+      }
+    } else {
+      if ((this.n as number)-- <= 0) {
+        this.outPort(idx).send(value as T);
+      }
+    }
+  }
+
+  onRequest(_idx: number, n: number): void {
+    if (this.n !== undefined) {
+      this.inPort(0).request(
+        (this.requested ? 0 : this.n) + n
+      );
     }
     this.requested = true;
   }

@@ -58,12 +58,38 @@ unzip(in) => (outL, outR) {
 }
 
 /*
+Emits while the specified number of elements to take has not yet been reached.
+Backpressures when downstream backpressures.
+Completes when the defined number of elements has been taken, upstream completes or downstream cancels.
+*/
+take(in, n) => out {
+  out <- extern("core/Take") <- (in, n)
+}
+
+/*
+Emits when the specified number of elements has been dropped already.
+Backpressures when the specified number of elements has been dropped and downstream backpressures.
+Completes when upstream completes or downstream cancels.
+*/
+drop(in, n) => out {
+  out <- extern("core/Drop") <- (in, n)
+}
+
+/*
+Emits the first element received from upstream.
+Completes when the first element is emitted, upstream completes or downstream cancels.
+*/
+head(in) => out {
+  out <- take(_, 1) <- in
+}
+
+/*
 Emits a single element once the specified number of elements has been received.
 Backpressures when downstream backpressures.
 Completes when the defined element has been emitted, if upstream completes or if downstream cancels.
 */
 nth(in, n) => out {
-  out <- extern("core/Nth") <- (in, n)
+  out <- head(_) <- drop(_, n - 1) <- in
 }
 
 /*
