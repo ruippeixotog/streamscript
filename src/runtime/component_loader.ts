@@ -1,8 +1,8 @@
 import util from "util";
 import fs from "fs";
 import path from "path";
-import { Component } from "./component";
-import { ComponentDef, ComponentStore } from "../types";
+import { Component } from "./types";
+import { ComponentDef, ComponentSpec, ComponentStore } from "../types";
 
 const identity = "core/Identity";
 
@@ -31,24 +31,25 @@ const arrayPush = "operators/ArrayPush";
 const objectSet = "operators/SetPropertyValue";
 const index = "operators/Index";
 
-function getComponentSpec(name: string, c: Component): ComponentDef<Component> {
-  // TODO: read from metadata
-  return {
-    spec: c.spec,
-    impl: c
-  };
+export interface ComponentClass {
+  readonly spec: ComponentSpec;
+  new(): Component<unknown[], unknown[]>;
 }
 
-async function loadComponents(): Promise<ComponentStore<Component>> {
-  const packageModules = await util.promisify(fs.readdir)("src/rxjs/components");
+function getComponentSpec(name: string, c: ComponentClass): ComponentDef<ComponentClass> {
+  return { spec: c.spec, impl: c };
+}
+
+async function loadComponents(): Promise<ComponentStore<ComponentClass>> {
+  const packageModules = await util.promisify(fs.readdir)("src/runtime/components");
 
   const components = packageModules.flatMap(f => {
     const packageName = path.parse(f).name;
-    const packageComponents: { [name: string]: Component } =
-      require.main?.require(`./rxjs/components/${packageName}`);
+    const packageComponents: { [name: string]: ComponentClass } =
+      require.main?.require(`./runtime/components/${packageName}`);
 
     return Object.entries(packageComponents)
-      .map<[string, ComponentDef<Component>]>(([name, comp]) => {
+      .map<[string, ComponentDef<ComponentClass>]>(([name, comp]) => {
         const componentName = `${packageName}/${name}`;
         return [componentName, getComponentSpec(componentName, comp)];
       });

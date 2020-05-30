@@ -1,4 +1,4 @@
-import {Subscriber, Subscription} from "../../../src/pull/types";
+import {Subscriber, Subscription} from "../../../src/runtime/types";
 
 export type SubscriberStatus =
   "inactive" | "active" | "completed" | "errored";

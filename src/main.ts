@@ -1,7 +1,7 @@
 import fs from "fs";
 
 import parser from "./parser";
-import { importRootDir, loader, runner } from "./pull";
+import { importRootDir, loader, runner } from "./runtime";
 import compiler from "./graph_compiler";
 import printer from "./graph_printer";
 import Graph from "./graph";

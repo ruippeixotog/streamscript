@@ -1,10 +1,10 @@
 import assert from "assert";
 
-import InPort from "../../../src/pull/lib/InPort";
+import InPort from "../../../src/runtime/lib/InPort";
 import MockSubscriber from "./MockSubscriber";
 import MockPublisher from "./MockPublisher";
 import eventually from "./eventually";
-import OutPort from "../../../src/pull/lib/OutPort";
+import OutPort from "../../../src/runtime/lib/OutPort";
 import MockSubscription from "./MockSubscription";
 
 function multiSubSetup<T>(n: number): [MockSubscription, OutPort<T>, MockSubscriber<T>[]] {

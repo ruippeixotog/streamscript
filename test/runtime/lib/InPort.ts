@@ -1,6 +1,6 @@
 import assert from "assert";
 
-import InPort from "../../../src/pull/lib/InPort";
+import InPort from "../../../src/runtime/lib/InPort";
 import MockSubscriber from "./MockSubscriber";
 import MockPublisher from "./MockPublisher";
 import eventually from "./eventually";

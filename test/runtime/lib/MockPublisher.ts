@@ -1,4 +1,4 @@
-import { Publisher, Subscriber } from "../../../src/pull/types";
+import { Publisher, Subscriber } from "../../../src/runtime/types";
 
 class MockPublisher<T> implements Publisher<T> {
   subscriber?: Subscriber<T>;

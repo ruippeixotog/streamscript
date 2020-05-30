@@ -1,4 +1,4 @@
-import { Subscription } from "../../../src/pull/types";
+import { Subscription } from "../../../src/runtime/types";
 
 class MockSubscription implements Subscription {
   requested = 0;
