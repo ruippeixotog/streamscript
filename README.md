@@ -42,7 +42,7 @@ Symbols (akin to variables in other languages) compile to single-input, single-o
 All other operators apply operations element-wise, pairing input elements in case of binary operations. For example:
 
 - `a + b` pairs each element emitted by `a` with an element emitted by `b` and emits an element with value `a + b`;
-- `a[idx]` pairs each element emitted by `a` (expected to be an array or object) with an element emitted by `idx` and emits an element with value `a + b`.
+- `a[idx]` pairs each element emitted by `a` (expected to be an array or object) with an element emitted by `idx` and emits an element with value `arr[idx]` (`arr` indexed by `idx`).
 
 Type coercion in StreamScript occurs with the same semantics as JavaScript.
 
