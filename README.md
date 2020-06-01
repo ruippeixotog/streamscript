@@ -53,7 +53,7 @@ Functions define a new type of component that can be instantiated multiple times
 
 ## Standard Library
 
-Take a look at [this folder](https://github.com/ruippeixotog/streamscript/tree/master/src/runtime/sslib). Function names are mostly taken from [Akka Streams](https://doc.akka.io/docs/akka/current/stream/index.html) equivalents, so if you're unsure of what some function does try to find it [here](https://doc.akka.io/docs/akka/current/stream/operators/index.html).
+You can take a look at [this folder](https://github.com/ruippeixotog/streamscript/tree/master/src/runtime/sslib). Function names are mostly taken from [Akka Streams](https://doc.akka.io/docs/akka/current/stream/index.html), so if you're unsure of what some function does try to find it [here](https://doc.akka.io/docs/akka/current/stream/operators/index.html).
 
 ## Copyright
 
