@@ -36,6 +36,6 @@
     "lint": "eslint --ext '.js,.ts' src test",
     "tsc": "tsc",
     "test": "mocha -r ts-node/register test/**/*.ts",
-    "validate": "set -x; npm run lint && npm run tsc && npm test"
+    "validate": "set -x; npm run lint && npm test"
   }
 }
