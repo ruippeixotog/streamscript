@@ -77,8 +77,7 @@ semantics.addAttribute("ast", {
 function parse(moduleContent: string): SSNode {
   const match = grammar.match(moduleContent);
   if (match.failed()) {
-    console.error(match.message);
-    throw new Error("Unable to parse module");
+    throw new Error(`Unable to parse module\n${match.message}`);
   }
   // console.log(require("util").inspect(semantics(match).ast, { showHidden: false, depth: null }));
   return semantics(match).ast;
