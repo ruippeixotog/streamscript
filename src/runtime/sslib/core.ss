@@ -54,7 +54,7 @@ Backpressures when any of the outputs backpressures.
 Completes when upstream completes or both downstreams cancel.
 */
 unzip(in) => (outL, outR) {
-  (outL, outR) <- (in[rep(0)], in[rep(1)])
+  (outL, outR) <- (in[@0], in[@1])
 }
 
 /*

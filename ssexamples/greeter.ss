@@ -1,3 +1,3 @@
 import io
 
-rep("Hello ") + io.stdin -> io.stdout
+@"Hello " + io.stdin -> io.stdout

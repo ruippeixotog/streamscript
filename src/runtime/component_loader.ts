@@ -24,7 +24,8 @@ const binOps = {
 
 const unOps = {
   "-": "operators/Negate",
-  "!": "operators/Not"
+  "!": "operators/Not",
+  "@": "core/Repeat"
 };
 
 const arrayPush = "operators/ArrayPush";

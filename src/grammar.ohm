@@ -157,8 +157,8 @@ StreamStript {
   binOpP6     (a binary operator)
     = "*" | "/" | "%"
 
-  unOp         (a unary operator)
-    = ~binOpP1 ("-" | "!")
+  unOp        (a unary operator)
+    = ~binOpP1 ("-" | "!" | "@")
 
   keyword
     = ("import" | "true" | "false" | "null" | "void") ~alnum
