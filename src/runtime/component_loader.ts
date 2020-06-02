@@ -46,7 +46,8 @@ async function loadComponents(): Promise<ComponentStore<ComponentClass>> {
   const components = packageModules.flatMap(f => {
     const packageName = path.parse(f).name;
     const packageComponents: { [name: string]: ComponentClass } =
-      require.main?.require(`./runtime/components/${packageName}`);
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      require(`../runtime/components/${packageName}`);
 
     return Object.entries(packageComponents)
       .map<[string, ComponentDef<ComponentClass>]>(([name, comp]) => {
