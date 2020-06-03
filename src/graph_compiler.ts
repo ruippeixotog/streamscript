@@ -134,13 +134,14 @@ function compileGraphAux(
         );
       },
       Object: ({ uuid, elems }) => {
-        const elemSpecs: [string, NodeSpec][] = elems.map(([k, v]) => [k, build(v)]);
+        const elemSpecs: [NodeSpec, NodeSpec][] = elems.map(([k, v]) => [build(k), build(v)]);
         return elemSpecs.reduce(
           (obj, [key, value], elemIdx) => {
+            util.assertOutArity(1, key);
             util.assertOutArity(1, value);
             const componentId = graphX.graph().componentStore.specials.objectSet;
             const node = graphX.graph().addNode(`SetPropertyValue: #${uuid}_${elemIdx}`, componentId);
-            graphX.graph().setInitial(node.ins[0], key);
+            graphX.graph().connectPorts(key.outs[0], node.ins[0]);
             graphX.graph().connectPorts(value.outs[0], node.ins[1]);
             graphX.graph().connectPorts(obj.outs[0], node.ins[2]);
             return { ins: [], outs: node.outs };

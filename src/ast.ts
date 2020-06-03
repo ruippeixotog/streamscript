@@ -11,7 +11,7 @@ export type SSNode =
   { uuid: string; type: "Tuple"; elems: SSNode[] } |
   { uuid: string; type: "Literal"; value: string | number | boolean | null } |
   { uuid: string; type: "Array"; elems: SSNode[] } |
-  { uuid: string; type: "Object"; elems: [string, SSNode][] } |
+  { uuid: string; type: "Object"; elems: [SSNode, SSNode][] } |
   { uuid: string; type: "Wildcard" } |
   { uuid: string; type: "Void" };
 
@@ -43,7 +43,7 @@ function fold<T>(node: SSNode, fs: SSAction<T, T>): T {
     Tuple: v => fs["Tuple"]({ ...v, elems: v.elems.map(fold1) }),
     Literal: v => fs["Literal"](v),
     Array: v => fs["Array"]({ ...v, elems: v.elems.map(fold1) }),
-    Object: v => fs["Object"]({ ...v, elems: v.elems.map(([k, v]) => [k, fold1(v)]) }),
+    Object: v => fs["Object"]({ ...v, elems: v.elems.map(([k, v]) => [fold1(k), fold1(v)]) }),
     Wildcard: v => fs["Wildcard"](v),
     Void: v => fs["Void"](v),
   });

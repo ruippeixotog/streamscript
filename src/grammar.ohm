@@ -94,7 +94,7 @@ StreamStript {
     = "{" ListOf<ObjectPair, ","> "}"
 
   ObjectPair
-    = string ":" Expr
+    = Expr ":" Expr
 
   Wildcard
     = "_"
