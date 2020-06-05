@@ -122,6 +122,13 @@ function compileGraphAux(
       },
       Literal: ({ uuid, value }) => graphX.addConstNode(value, uuid),
       Array: ({ uuid, elems }) => {
+        let emptySpec = graphX.addConstNode([], uuid);
+        if (elems.length === 0) return emptySpec;
+
+        const repComponentId = graphX.graph().componentStore.specials.unOps["@"];
+        const repNodeId = `${repComponentId.split("/")[1]}_${uuid}`;
+        emptySpec = graphX.graph().connectNodes(emptySpec, graphX.graph().addNode(repNodeId, repComponentId));
+
         const elemSpecs = elems.map(build);
         return elemSpecs.reduce(
           (arr, elem, elemIdx) => {
@@ -130,10 +137,17 @@ function compileGraphAux(
             const node = graphX.graph().addNode(`ArrayPush: #${uuid}_${elemIdx}`, componentId);
             return graphX.graph().connectNodesBin(arr, elem, node);
           },
-          graphX.addConstNode([], uuid)
+          emptySpec
         );
       },
       Object: ({ uuid, elems }) => {
+        let emptySpec = graphX.addConstNode({}, uuid);
+        if (elems.length === 0) return emptySpec;
+
+        const repComponentId = graphX.graph().componentStore.specials.unOps["@"];
+        const repNodeId = `${repComponentId.split("/")[1]}_${uuid}`;
+        emptySpec = graphX.graph().connectNodes(emptySpec, graphX.graph().addNode(repNodeId, repComponentId));
+
         const elemSpecs: [NodeSpec, NodeSpec][] = elems.map(([k, v]) => [build(k), build(v)]);
         return elemSpecs.reduce(
           (obj, [key, value], elemIdx) => {
@@ -146,7 +160,7 @@ function compileGraphAux(
             graphX.graph().connectPorts(obj.outs[0], node.ins[2]);
             return { ins: [], outs: node.outs };
           },
-          graphX.addConstNode({}, uuid)
+          emptySpec
         );
       },
       Wildcard: () => {
