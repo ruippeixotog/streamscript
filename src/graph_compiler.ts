@@ -53,9 +53,7 @@ function compileGraphAux(
         return graphX.graph().connectNodes(argSpec, graphX.graph().addNode(nodeId, componentId));
       },
       Var: ({ moduleName, name }) => {
-        return moduleName ?
-          graphX.graph().getNode(graphX.nodeIdForVar(moduleName, name)) :
-          graphX.addVarNode(thisModuleName, name);
+        return graphX.addVarNode(moduleName ?? thisModuleName, name, false, moduleName !== null);
       },
       Index: ({ uuid, coll, index }) => {
         const [collSpec, indexSpec] = [build(coll), build(index)];
@@ -70,12 +68,12 @@ function compileGraphAux(
         }
         graphX.openScope(uuid);
         ins.forEach(name =>
-          graphX.addVarNode(thisModuleName, name, true).ins.forEach(p =>
+          graphX.addVarNode(thisModuleName, name, true, false).ins.forEach(p =>
             graphX.graph().addExternalIn(name, p)
           )
         );
         outs.forEach(name =>
-          graphX.addVarNode(thisModuleName, name, true).outs.forEach(p =>
+          graphX.addVarNode(thisModuleName, name, true, false).outs.forEach(p =>
             graphX.graph().addExternalOut(name, p)
           )
         );

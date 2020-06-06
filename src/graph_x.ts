@@ -28,24 +28,52 @@ class GraphX {
     return { ins: [], outs: node.outs };
   }
 
-  addVarNode(moduleName: string | null, name: string, forceNew = false): NodeSpec {
-    const currentScope = this.scopes[this.scopes.length - 1];
-    currentScope.vars.add(name);
-    const node = this.graph().addNode(
-      this.nodeIdForVar(moduleName, name),
-      this.graph().componentStore.specials.identity
-    );
+  addVarNode(
+    moduleName: string | null,
+    name: string,
+    forceNew = false,
+    isFullyQualified: boolean = moduleName !== null): NodeSpec {
 
-    if (!forceNew) {
-      for (let i = this.scopes.length - 2; i >= 0; i--) {
-        if (this.scopes[i].vars.has(name)) {
-          node.ins.forEach(p => this.graph().addExternalIn(name, p, true));
-          node.outs.forEach(p => this.graph().addExternalOut(name, p, true));
-          break;
+    const linkImplicit = (externalName: string): NodeSpec => {
+      const nodeIn = this.graph().addNode(
+        this.nodeIdForProxyVar(moduleName, name, "in"),
+        this.graph().componentStore.specials.identity
+      );
+      const nodeOut = this.graph().addNode(
+        this.nodeIdForProxyVar(moduleName, name, "out"),
+        this.graph().componentStore.specials.identity
+      );
+      this.graph().addExternalIn(externalName, nodeIn.ins[0], true);
+      this.graph().addExternalOut(externalName, nodeOut.outs[0], true);
+      return { ins: nodeOut.ins, outs: nodeIn.outs };
+    };
+
+    if (isFullyQualified) {
+      const node = this.scopes[0].graph.addNode(
+        this.nodeIdForVar(moduleName, name),
+        this.graph().componentStore.specials.identity
+      );
+      return this.scopes.length === 1 ?
+        node :
+        linkImplicit(`${moduleName}.${name}`);
+
+    } else {
+      const currentScope = this.scopes[this.scopes.length - 1];
+      if (!currentScope.vars.has(name)) {
+        currentScope.vars.add(name);
+        if (!forceNew) {
+          for (let i = this.scopes.length - 2; i >= 0; i--) {
+            if (this.scopes[i].vars.has(name)) {
+              return linkImplicit(name);
+            }
+          }
         }
       }
+      return this.graph().addNode(
+        this.nodeIdForVar(moduleName, name),
+        this.graph().componentStore.specials.identity
+      );
     }
-    return node;
   }
 
   addFunctionNode(moduleName: string | null, name: string, uuid: string): NodeSpec {
@@ -71,10 +99,20 @@ class GraphX {
     }
     const subgraph = this.graph().getSubgraph(fullName);
     subgraph.externalIns.filter(p => p.implicit).forEach(p => {
-      this.graph().connectPorts(p.innerPort, { portName: p.portName, nodeId });
+      const spl = p.portName.split(".");
+      const extNode = spl.length === 2 ?
+        this.addVarNode(spl[0], spl[1]) :
+        this.addVarNode(null, spl[0]);
+
+      this.graph().connectPorts(extNode.outs[0], { nodeId, portName: p.portName });
     });
     subgraph.externalOuts.filter(p => p.implicit).forEach(p => {
-      this.graph().connectPorts({ portName: p.portName, nodeId }, p.innerPort);
+      const spl = p.portName.split(".");
+      const extNode = spl.length === 2 ?
+        this.addVarNode(spl[0], spl[1]) :
+        this.addVarNode(null, spl[0]);
+
+      this.graph().connectPorts({ portName: p.portName, nodeId }, extNode.ins[0]);
     });
     return node;
   }
@@ -93,6 +131,10 @@ class GraphX {
 
   nodeIdForVar(moduleName: string | null, name: string): string {
     return `Var: ${this.fullVarName(moduleName, name)}`;
+  }
+
+  nodeIdForProxyVar(moduleName: string | null, name: string, direction: "in" | "out"): string {
+    return `Proxy Var: ${this.fullVarName(moduleName, name)} (${direction})`;
   }
 
   openScope(id: string): void {

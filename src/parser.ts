@@ -35,7 +35,7 @@ semantics.addAttribute("ast", {
   VarAccess: lift((moduleName, _1, name, _2, indices, _3) =>
     indices.reduce(
       (coll, index) => astNode("Index", { coll, index }),
-      astNode("Var", { moduleName: moduleName[0], name })
+      astNode("Var", { moduleName: moduleName[0] ?? null, name })
     )),
 
   FunAppl: lift((func, _1, args, _2) => astNode("FunAppl", { func, args })),
