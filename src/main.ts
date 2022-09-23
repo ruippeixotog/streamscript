@@ -16,6 +16,7 @@ async function runFile(filename: string): Promise<void> {
   const graph = new Graph(componentStore);
   compiler.compileGraph(ast, graph, importRootDir);
 
+  fs.mkdirSync("out", { recursive: true });
   fs.writeFileSync("out/graph.dot", printer.toDOT(graph));
   fs.writeFileSync("out/graph_full.dot", printer.toDOT(graph, true));
   printer.toPNG(graph, "out/graph.png");
