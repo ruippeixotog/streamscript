@@ -69,7 +69,8 @@ semantics.addAttribute("ast", {
   stringChar_escaped: lift((_, escaped) => `\\${escaped}`),
   stringSpecialChar_codePoint: lift((_, h1, h2, h3, h4) => `u${h1}${h2}${h3}${h4}`),
 
-  _terminal: function () { return this.primitiveValue; }
+  _terminal: function () { return this.sourceString; },
+  _iter: function (...children) { return children.map(c => c.ast); }
 });
 
 function parse(moduleContent: string): SSNode {

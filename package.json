@@ -13,7 +13,7 @@
   "dependencies": {
     "graphviz": "0.0.9",
     "json-stable-stringify": "^1.0.1",
-    "ohm-js": "^0.14.0"
+    "ohm-js": "^16.4.0"
   },
   "devDependencies": {
     "@babel/core": "^7.19.1",
