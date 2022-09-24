@@ -33,9 +33,11 @@ export const Not = UnOp((a1: any) => !a1);
 
 export const ArrayPush = BinOp((arr: unknown[], elem: unknown) => [...arr, elem]);
 
-export class SetPropertyValue extends PureComponent<[string, unknown, {}], {}> {
+type AnyObject = Record<string, unknown>;
+
+export class SetPropertyValue extends PureComponent<[string, unknown, AnyObject], AnyObject> {
   static spec = { ins: ["key", "value", "obj"], outs: ["out"] };
-  process = (k: string, v: unknown, obj: {}): {} => ({ ...obj, [k]: v });
+  process = (k: string, v: unknown, obj: AnyObject): AnyObject => ({ ...obj, [k]: v });
 }
 
 export const Index = BinOp((coll: any, index: any) => coll[index]);

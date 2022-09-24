@@ -20,7 +20,6 @@ function astNode<T>(type: SSNodeType, data: T): { uuid: string; type: SSNodeType
   return { uuid: (++nodeNumber).toString(), type, ...data };
 }
 
-/* eslint-disable @typescript-eslint/camelcase */
 semantics.addAttribute("ast", {
   Module: lift(stmts => astNode("Module", { stmts })),
   Import: lift((_, moduleName) => astNode("Import", { moduleName })),
@@ -72,7 +71,6 @@ semantics.addAttribute("ast", {
 
   _terminal: function () { return this.primitiveValue; }
 });
-/* eslint-enable @typescript-eslint/camelcase */
 
 function parse(moduleContent: string): SSNode {
   const match = grammar.match(moduleContent);

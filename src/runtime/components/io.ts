@@ -28,7 +28,7 @@ export class Output<T> extends BaseComponent<[T], []> {
   }
 }
 
-export class Input<T> extends GeneratorComponent<[], string> {
+export class Input<_T> extends GeneratorComponent<[], string> {
   static spec = { ins: [], outs: ["out"] };
 
   private rt: readline.Interface;
