@@ -31,5 +31,4 @@ if (process.argv.length > 2) {
   runFile(filename)
     .then(() => console.log("Finished."))
     .catch(err => console.error("ERROR:", err));
-
 }
