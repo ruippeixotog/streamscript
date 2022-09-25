@@ -32,18 +32,4 @@ if (process.argv.length > 2) {
     .then(() => console.log("Finished."))
     .catch(err => console.error("ERROR:", err));
 
-} else {
-  function parseDir(dir: string) {
-    fs.readdir(dir, { withFileTypes: true }, (_, files) => {
-      files.forEach(file => {
-        if(file.isDirectory()) {
-          parseDir(`${dir}/${file.name}`);
-        } else {
-          console.log(`parsing ${file.name}...`);
-          parser.parseFile(`${dir}/${file.name}`);
-        }
-      });
-    });
-  }
-  parseDir("ssexamples");
 }
