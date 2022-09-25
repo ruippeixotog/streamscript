@@ -2,7 +2,7 @@ import fs from "fs";
 import ohm from "ohm-js";
 import type { SSNodeType, SSNode } from "./ast";
 
-const grammar = ohm.grammar(fs.readFileSync("src/grammar.ohm", "utf8"));
+const grammar = ohm.grammar(fs.readFileSync("src/parser/grammar.ohm", "utf8"));
 const semantics = grammar.createSemantics();
 
 let nodeNumber = 0;
