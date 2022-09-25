@@ -11,7 +11,6 @@ fibN(n) => out {
   fib() -> nth(_, n) -> out
 }
 
-io.stdout <- fibN(0)
 io.stdout <- fibN(1)
 io.stdout <- fibN(2)
 io.stdout <- fibN(3)
