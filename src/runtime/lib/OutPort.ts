@@ -23,28 +23,14 @@ class OutPort<T> extends PortBase<T> implements Publisher<T> {
     this.subscribers.push({ ref: subscriber, demand: 0 });
     subscriber.onSubscribe({
       request: (n: number) => {
-        if (!this.subscribers.find(s0 => s0.ref === subscriber)) {
+        const subscriberEntries = this.subscribers
+          .filter(s0 => s0.ref === subscriber);
+
+        if (subscriberEntries.length === 0) {
           return;
         }
-        this.subscribers
-          .filter(s0 => s0.ref === subscriber)
-          .forEach(s0 => s0.demand += n);
-
-        let sharedDemand = this.subscribers.reduce(
-          (acc, s) => Math.min(acc, s.demand),
-          Number.MAX_SAFE_INTEGER
-        );
-
-        this.subscribers.forEach(s => s.demand -= sharedDemand);
-        this.demand += sharedDemand;
-
-        while (sharedDemand > 0 && this.queueSize() > 0) {
-          this._sendInternal(this.dequeque() as T);
-          sharedDemand--;
-        }
-        if (sharedDemand > 0) {
-          this.compSubscription.request(sharedDemand);
-        }
+        subscriberEntries.forEach(s0 => s0.demand += n);
+        this._updateSharedDemand();
       },
       cancel: () => {
         this.scheduleMessage(() => subscriber.onComplete());
@@ -53,6 +39,8 @@ class OutPort<T> extends PortBase<T> implements Publisher<T> {
 
         if (this.subscribers.length === 0) {
           this._startDrainSimple();
+        } else {
+          this._updateSharedDemand();
         }
       }
     });
@@ -93,6 +81,25 @@ class OutPort<T> extends PortBase<T> implements Publisher<T> {
   private _sendInternal(t: T): void {
     this.subscribers.forEach(s => this.scheduleMessage(() => s.ref.onNext(t)));
     this.demand--;
+  }
+
+  private _updateSharedDemand(): void {
+    if (this.subscribers.length === 0) return;
+
+    let sharedDemand = this.subscribers.reduce(
+      (acc, s) => Math.min(acc, s.demand),
+      Number.MAX_SAFE_INTEGER
+    );
+    this.subscribers.forEach(s => s.demand -= sharedDemand);
+    this.demand += sharedDemand;
+
+    while (sharedDemand > 0 && this.queueSize() > 0) {
+      this._sendInternal(this.dequeque() as T);
+      sharedDemand--;
+    }
+    if (sharedDemand > 0) {
+      this.compSubscription.request(sharedDemand);
+    }
   }
 
   private _startDrainSimple(err?: Error): void {

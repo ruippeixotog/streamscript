@@ -97,6 +97,15 @@ describe("OutPort", function () {
     subs[0].subscription?.request(3);
 
     assert.equal(compSub.requested, 0);
+
+    // case 3: only one subscriber requests data, but others leave
+    [compSub, port, subs] = multiSubSetup<number>(2);
+    subs[0].subscription?.request(3);
+    assert.equal(compSub.requested, 0);
+
+    subs[1].subscription?.cancel();
+    await eventually(() => assert.equal(subs[1].status, "completed"));
+    assert.equal(compSub.requested, 3);
   });
 
   it("should handle completions correctly with multiple subscribers", async function () {
