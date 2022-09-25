@@ -1,5 +1,5 @@
 import assert from "assert";
-import type { NodeSpec } from "./graph";
+import type { NodeSpec } from "../graph";
 
 function assertConnectArity(from: NodeSpec, to: NodeSpec): void {
   assert.equal(to.ins.length, from.outs.length,

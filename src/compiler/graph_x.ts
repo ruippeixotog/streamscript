@@ -1,4 +1,4 @@
-import Graph, { NodeSpec } from "./graph";
+import Graph, { NodeSpec } from "../graph";
 
 type Scope = {
   id: string;

@@ -1,11 +1,11 @@
 import assert from "assert";
-import { run } from "./parser/ast";
-import Graph from "./graph";
-import util from "./graph_util";
+import { run } from "../parser/ast";
+import Graph from "../graph";
+import util from "./util";
 import GraphX from "./graph_x";
-import parser from "./parser";
-import type { SSNode } from "./parser/ast";
-import type { InPort, NodeSpec } from "./graph";
+import parser from "../parser";
+import type { SSNode } from "../parser/ast";
+import type { InPort, NodeSpec } from "../graph";
 
 function compileGraphAux(
   ast: SSNode,

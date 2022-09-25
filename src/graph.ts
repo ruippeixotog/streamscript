@@ -1,4 +1,4 @@
-import util from "./graph_util";
+import util from "./compiler/util";
 import DeepMap from "./util/DeepMap";
 import DeepSet from "./util/DeepSet";
 import { ComponentStore } from "./types";

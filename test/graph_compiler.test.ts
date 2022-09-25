@@ -2,7 +2,7 @@ import { walk } from "./fs_util";
 import parser from "../src/parser";
 import { importRootDir, loader } from "../src/runtime";
 import Graph from "../src/graph";
-import compiler from "../src/graph_compiler";
+import compiler from "../src/compiler";
 
 describe("graph_compiler", function () {
   it("should be able to compile every source file in ssexamples (except subfolders)", async function () {
