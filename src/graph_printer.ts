@@ -80,7 +80,7 @@ function buildGraphvizGraph(
       });
     }
   });
-  graph.edges.forEach(([from, to]) => {
+  graph.edges.forEach(({ from, to }) => {
     const [fromId, fromPortName] = idForOutPort(from);
     const [toId, toPortName] = idForInPort(to);
 

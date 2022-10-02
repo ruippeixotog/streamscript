@@ -19,7 +19,7 @@ function toComponent(graph: Graph, logger: Logger, graphName?: string): Componen
       .then(logger.nodeSubscriber(nodeId, graphName));
   });
 
-  graph.edges.forEach(([from, to]) => {
+  graph.edges.forEach(({ from, to }) => {
     const fromComp = nodeComponents[from.nodeId];
     const toComp = nodeComponents[to.nodeId];
     Builder

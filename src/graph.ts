@@ -1,6 +1,5 @@
 import util from "./compiler/util";
 import DeepMap from "./util/DeepMap";
-import DeepSet from "./util/DeepSet";
 import { ComponentStore } from "./types";
 
 export type InPort = { nodeId: string; portName: string };
@@ -27,10 +26,15 @@ export type ExternalOutPort = {
   implicit: boolean;
 };
 
+export type EdgeSpec = {
+  from: OutPort;
+  to: InPort;
+};
+
 class Graph {
   componentStore: ComponentStore<unknown>;
   nodes: DeepMap<string, NodeImpl>;
-  edges: DeepSet<[OutPort, InPort]>;
+  edges: EdgeSpec[];
   initials: DeepMap<InPort, unknown>;
   subgraphs: DeepMap<string, Graph>;
   externalIns: ExternalInPort[];
@@ -41,7 +45,7 @@ class Graph {
   constructor(componentStore: ComponentStore<unknown>) {
     this.componentStore = componentStore;
     this.nodes = new DeepMap();
-    this.edges = new DeepSet();
+    this.edges = [];
     this.initials = new DeepMap();
     this.subgraphs = new DeepMap();
     this.externalIns = [];
@@ -95,7 +99,7 @@ class Graph {
 
   connectPorts(from: OutPort, to: InPort): void {
     if (from.nodeId !== Graph.VOID_NODE && to.nodeId !== Graph.VOID_NODE) {
-      this.edges.add([from, to]);
+      this.edges.push({ from, to });
     }
   }
 
