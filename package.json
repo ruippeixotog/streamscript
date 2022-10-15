@@ -13,7 +13,8 @@
   "dependencies": {
     "graphviz": "0.0.9",
     "json-stable-stringify": "^1.0.1",
-    "ohm-js": "^16.4.0"
+    "ohm-js": "^16.4.0",
+    "yargs": "^17.6.0"
   },
   "devDependencies": {
     "@babel/core": "^7.19.3",
@@ -25,6 +26,7 @@
     "@types/graphviz": "^0.0.34",
     "@types/mocha": "^9.1.1",
     "@types/node": "^18.7.23",
+    "@types/yargs": "^17.0.13",
     "@typescript-eslint/eslint-plugin": "^5.38.1",
     "@typescript-eslint/parser": "^5.38.1",
     "eslint": "^8.24.0",
