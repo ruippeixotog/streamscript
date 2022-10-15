@@ -1,5 +1,5 @@
 import assert from "assert";
-import type { PartRef } from "./graph";
+import type { PartRef } from "./graph_builder";
 
 function assertConnectArity(from: PartRef, to: PartRef): void {
   assert.equal(to.ins.length, from.outs.length,

@@ -4,7 +4,6 @@ import parser from "./parser";
 import { importRootDir, loader, runner } from "./runtime";
 import compiler from "./compiler";
 import printer from "./graph_printer";
-import Graph from "./compiler/graph";
 
 async function runFile(filename: string): Promise<void> {
   console.log(`parsing ${filename}...`);
@@ -12,9 +11,7 @@ async function runFile(filename: string): Promise<void> {
 
   console.log(`compiling ${filename}...`);
   const componentStore = await loader.loadComponents();
-
-  const graph = new Graph(componentStore);
-  compiler.compileGraph(ast, graph, importRootDir);
+  const graph = compiler.compileGraph(ast, componentStore, importRootDir);
 
   fs.mkdirSync("out", { recursive: true });
   fs.writeFileSync("out/graph.dot", printer.toDOT(graph));
@@ -23,7 +20,7 @@ async function runFile(filename: string): Promise<void> {
   printer.toPNG(graph, "out/graph_full.png", true);
 
   console.log(`running ${filename}...`);
-  await runner.runGraph(graph);
+  await runner.runGraph(graph, componentStore);
 }
 
 if (process.argv.length > 2) {

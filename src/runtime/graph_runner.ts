@@ -5,15 +5,19 @@ import { ComponentClass } from "./component_loader";
 import Builder from "./lib/PublisherBuilder";
 import Logger from "./Logger";
 
-function toComponent(graph: Graph, logger: Logger, graphName?: string): Component<unknown[], unknown[]> {
-  const componentStore = graph.componentStore as ComponentStore<ComponentClass>;
+function toComponent(
+  graph: Graph,
+  componentStore: ComponentStore<ComponentClass>,
+  logger: Logger,
+  graphName?: string
+): Component<unknown[], unknown[]> {
   const nodeComponents: { [nodeId: string]: Component<unknown[], unknown[]> } = {};
 
   graph.nodes.forEach((nodeImpl, nodeId) => {
     nodeComponents[nodeId] =
       "componentId" in nodeImpl ?
         new componentStore.components[nodeImpl.componentId].impl() :
-        toComponent(graph.getSubgraph(nodeImpl.subgraphId), logger, nodeId);
+        toComponent(graph.getSubgraph(nodeImpl.subgraphId), componentStore, logger, nodeId);
 
     nodeComponents[nodeId].whenTerminated()
       .then(logger.nodeSubscriber(nodeId, graphName));
@@ -77,9 +81,9 @@ function toComponent(graph: Graph, logger: Logger, graphName?: string): Componen
   };
 }
 
-async function runGraph(graph: Graph): Promise<void> {
+async function runGraph(graph: Graph, componentStore: ComponentStore<ComponentClass>): Promise<void> {
   const logger = new Logger("out/packets.log");
-  const comp = toComponent(graph, logger);
+  const comp = toComponent(graph, componentStore, logger);
   comp.start();
   await comp.whenTerminated();
 }

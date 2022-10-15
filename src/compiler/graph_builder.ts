@@ -1,23 +1,101 @@
-import Graph, { PartRef } from "./graph";
+import { ComponentStore } from "../types";
+import Graph, { InPortRef, OutPortRef } from "./graph";
 import util from "./util";
 
+/**
+ * A reference to a connected section of this graph, used by `GraphBuilder` to provide node-agnostic
+ * connect operations. A graph part can reference multiple nodes and can be seen conceptually as a
+ * single node with in and out ports.
+ */
+export type PartRef = {
+  ins: InPortRef[];
+  outs: OutPortRef[];
+};
+
 type Scope = {
-  id: string;
+  subgraphId: string;
   graph: Graph;
   vars: Set<string>;
 }
 
-class GraphX {
-  preludeModule: string | null;
-  scopes: Scope[];
+class GraphBuilder {
+  componentStore: ComponentStore<unknown>;
+  private scopes: Scope[];
+  private preludeModule: string | null;
 
-  constructor(graph: Graph, preludeModule: string | null) {
+  constructor(componentStore: ComponentStore<unknown>, preludeModule: string | null) {
+    this.scopes = [{ subgraphId: "", graph: new Graph(), vars: new Set() }];
+    this.componentStore = componentStore;
     this.preludeModule = preludeModule;
-    this.scopes = [{ id: "", graph, vars: new Set() }];
   }
 
-  graph(): Graph {
+  // --- Generic graph operations ---
+
+  rootGraph(): Graph {
+    return this.scopes[0].graph;
+  }
+
+  private graph(): Graph {
     return this.scopes[this.scopes.length - 1].graph;
+  }
+
+  addNode(nodeId: string, componentId: string): PartRef {
+    const component = this.componentStore.components[componentId];
+    if (!component) {
+      throw new Error(`Unknown component: ${componentId}`);
+    }
+    this.graph().addNode(nodeId, componentId);
+    return this.getNode(nodeId);
+  }
+
+  getNode(nodeId: string): PartRef {
+    return this.getNodeInGraph(nodeId, this.graph());
+  }
+
+  private getNodeInGraph(nodeId: string, graph: Graph): PartRef {
+    if (nodeId === GraphBuilder.VOID_NODE) {
+      return GraphBuilder.getVoidNode();
+    }
+    const nodeImpl = graph.getNode(nodeId);
+    if ("componentId" in nodeImpl) {
+      const component = this.componentStore.components[nodeImpl.componentId];
+      if (!component) {
+        throw new Error(`Unknown component: ${nodeImpl.componentId}`);
+      }
+      return {
+        ins: component.spec.ins.map(portName => ({ nodeId, portName })),
+        outs: component.spec.outs.map(portName => ({ nodeId, portName }))
+      };
+    } else {
+      const subgraph = graph.getSubgraph(nodeImpl.subgraphId);
+      return {
+        ins: subgraph.externalIns
+          .filter(p => !p.implicit)
+          .map(p => ({ nodeId, portName: p.portName })),
+        outs: subgraph.externalOuts
+          .filter(p => !p.implicit)
+          .map(p => ({ nodeId, portName: p.portName }))
+      };
+    }
+  }
+
+  addSubgraphNode(nodeId: string, subgraphId: string): PartRef {
+    this.graph().addSubgraphNode(nodeId, subgraphId);
+    return this.getNode(nodeId);
+  }
+
+  getSubgraph(subgraphId: string): Graph {
+    return this.graph().getSubgraph(subgraphId);
+  }
+
+  addSubgraph(subgraphId: string, subgraph: Graph): void {
+    this.graph().addSubgraph(subgraphId, subgraph);
+  }
+
+  connectPorts(from: OutPortRef, to: InPortRef): void {
+    if (from.nodeId !== GraphBuilder.VOID_NODE && to.nodeId !== GraphBuilder.VOID_NODE) {
+      this.graph().addEdge(from, to);
+    }
   }
 
   connect(from: PartRef, to: PartRef, closeIns = true): PartRef {
@@ -54,10 +132,20 @@ class GraphX {
     return { ins: closeIns ? [] : from.flatMap(e => e.ins), outs: to.outs };
   }
 
+  addExternalIn(portName: string, innerPort: InPortRef, implicit = false): void {
+    this.graph().addExternalIn(portName, innerPort, implicit);
+  }
+
+  addExternalOut(portName: string, innerPort: OutPortRef, implicit = false): void {
+    this.graph().addExternalOut(portName, innerPort, implicit);
+  }
+
+  // --- Specialized node add operations ---
+
   addConstNode(value: unknown, uuid: string): PartRef {
-    const node = this.graph().addNode(
+    const node = this.addNode(
       this.nodeIdForConst(value, uuid),
-      this.graph().componentStore.specials.identity
+      this.componentStore.specials.identity
     );
     this.graph().setInitial(node.ins[0], value);
     return { ins: [], outs: node.outs };
@@ -70,13 +158,13 @@ class GraphX {
     isFullyQualified: boolean = moduleName !== null): PartRef {
 
     const linkImplicit = (externalName: string): PartRef => {
-      const nodeIn = this.graph().addNode(
+      const nodeIn = this.addNode(
         this.nodeIdForProxyVar(moduleName, name, "in"),
-        this.graph().componentStore.specials.identity
+        this.componentStore.specials.identity
       );
-      const nodeOut = this.graph().addNode(
+      const nodeOut = this.addNode(
         this.nodeIdForProxyVar(moduleName, name, "out"),
-        this.graph().componentStore.specials.identity
+        this.componentStore.specials.identity
       );
       this.graph().addExternalIn(externalName, nodeIn.ins[0], true);
       this.graph().addExternalOut(externalName, nodeOut.outs[0], true);
@@ -84,10 +172,12 @@ class GraphX {
     };
 
     if (isFullyQualified) {
-      const node = this.scopes[0].graph.addNode(
-        this.nodeIdForVar(moduleName, name),
-        this.graph().componentStore.specials.identity
+      const nodeId = this.nodeIdForVar(moduleName, name);
+      this.scopes[0].graph.addNode(
+        nodeId,
+        this.componentStore.specials.identity
       );
+      const node = this.getNodeInGraph(nodeId, this.scopes[0].graph);
       return this.scopes.length === 1 ?
         node :
         linkImplicit(`${moduleName}.${name}`);
@@ -104,9 +194,9 @@ class GraphX {
           }
         }
       }
-      return this.graph().addNode(
+      return this.addNode(
         this.nodeIdForVar(moduleName, name),
-        this.graph().componentStore.specials.identity
+        this.componentStore.specials.identity
       );
     }
   }
@@ -121,7 +211,7 @@ class GraphX {
         if (i !== this.scopes.length - 1) {
           this.graph().addSubgraph(fullName, subgraphOpt);
         }
-        node = this.graph().addSubgraphNode(nodeId, fullName);
+        node = this.addSubgraphNode(nodeId, fullName);
       }
     }
     if (node === null) {
@@ -153,8 +243,10 @@ class GraphX {
   }
 
   addExternNode(componentId: string, uuid: string): PartRef {
-    return this.graph().addNode(`Extern: ${componentId} #${uuid}`, componentId);
+    return this.addNode(`Extern: ${componentId} #${uuid}`, componentId);
   }
+
+  // --- Naming utilities ---
 
   fullVarName(moduleName: string | null, name: string): string {
     return (moduleName ? moduleName + "." : "") + name;
@@ -172,21 +264,34 @@ class GraphX {
     return `Proxy Var: ${this.fullVarName(moduleName, name)} (${direction})`;
   }
 
-  openScope(id: string): void {
+  // --- Graph scoping ---
+
+  openScope(subgraphId: string): void {
     this.scopes.push({
-      id,
-      graph: new Graph(this.graph().componentStore),
+      subgraphId,
+      graph: new Graph(),
       vars: new Set()
     });
   }
 
-  closeScope(): Graph {
+  closeScope(): void {
     const scope = this.scopes.pop();
     if (!scope) {
       throw new Error("Tried to pop root scope");
     }
-    return scope.graph;
+    this.graph().addSubgraph(scope.subgraphId, scope.graph);
+  }
+
+  // --- Void node ---
+
+  static VOID_NODE = "void";
+
+  static getVoidNode(): PartRef {
+    return {
+      ins: [{ nodeId: GraphBuilder.VOID_NODE, portName: "in" }],
+      outs: [{ nodeId: GraphBuilder.VOID_NODE, portName: "out" }]
+    };
   }
 }
 
-export default GraphX;
+export default GraphBuilder;

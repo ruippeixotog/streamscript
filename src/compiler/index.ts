@@ -2,14 +2,16 @@ import assert from "assert";
 import { run } from "../parser/ast";
 import Graph from "./graph";
 import util from "./util";
-import GraphX from "./graph_x";
+import GraphBuilder from "./graph_builder";
 import parser from "../parser";
 import type { SSNode } from "../parser/ast";
-import type { InPortRef, PartRef } from "./graph";
+import type { InPortRef } from "./graph";
+import { ComponentStore } from "../types";
+import { PartRef } from "./graph_builder";
 
 function compileGraphAux(
   ast: SSNode,
-  graphX: GraphX,
+  graphX: GraphBuilder,
   importRootDir: string,
   thisModuleName: string | null): PartRef {
 
@@ -27,9 +29,9 @@ function compileGraphAux(
       FunDecl: ({ funName, funDef }) => {
         build(funDef);
         // TODO: do this without renaming
-        graphX.graph().addSubgraph(
+        graphX.addSubgraph(
           graphX.fullVarName(thisModuleName, funName),
-          graphX.graph().getSubgraph(`Lambda_${funDef.uuid}`)
+          graphX.getSubgraph(`Lambda_${funDef.uuid}`)
         );
         return { ins: [], outs: [] };
       },
@@ -41,16 +43,16 @@ function compileGraphAux(
         if (operator === "<-") {
           return graphX.connect(rhsRef, lhsRef, false);
         }
-        const componentId = graphX.graph().componentStore.specials.binOps[operator];
+        const componentId = graphX.componentStore.specials.binOps[operator];
         const nodeId = `${componentId.split("/")[1]}: #${uuid}`;
-        return graphX.connectBin(lhsRef, rhsRef, graphX.graph().addNode(nodeId, componentId));
+        return graphX.connectBin(lhsRef, rhsRef, graphX.addNode(nodeId, componentId));
       },
       UnOp: ({ uuid, operator, arg }) => {
         const argRef = build(arg);
 
-        const componentId = graphX.graph().componentStore.specials.unOps[operator];
+        const componentId = graphX.componentStore.specials.unOps[operator];
         const nodeId = `${componentId.split("/")[1]}_${uuid}`;
-        return graphX.connect(argRef, graphX.graph().addNode(nodeId, componentId));
+        return graphX.connect(argRef, graphX.addNode(nodeId, componentId));
       },
       Var: ({ moduleName, name }) => {
         return graphX.addVarNode(moduleName ?? thisModuleName, name, false, moduleName !== null);
@@ -59,28 +61,26 @@ function compileGraphAux(
         const [collRef, indexRef] = [build(coll), build(index)];
         util.assertOutArity(1, collRef);
         util.assertOutArity(1, indexRef);
-        const node = graphX.graph().addNode(`Index_${uuid}`, graphX.graph().componentStore.specials.index);
+        const node = graphX.addNode(`Index_${uuid}`, graphX.componentStore.specials.index);
         return graphX.connectBin(collRef, indexRef, node);
       },
       Lambda: ({ uuid, ins, outs, body }) => {
         if (!outs) {
           throw new Error("Short lambda form not supported currently");
         }
-        graphX.openScope(uuid);
+        graphX.openScope(`Lambda_${uuid}`);
         ins.forEach(name =>
           graphX.addVarNode(thisModuleName, name, true, false).ins.forEach(p =>
-            graphX.graph().addExternalIn(name, p)
+            graphX.addExternalIn(name, p)
           )
         );
         outs.forEach(name =>
           graphX.addVarNode(thisModuleName, name, true, false).outs.forEach(p =>
-            graphX.graph().addExternalOut(name, p)
+            graphX.addExternalOut(name, p)
           )
         );
         body.map(build);
-        const innerGraph = graphX.closeScope();
-        graphX.graph().addSubgraph(`Lambda_${uuid}`, innerGraph);
-
+        graphX.closeScope();
         return { ins: [], outs: [] };
       },
       FunAppl: ({ uuid, func, args }) => {
@@ -101,7 +101,7 @@ function compileGraphAux(
           } else {
             const argNode = build(arg);
             util.assertOutArity(1, argNode);
-            graphX.graph().addEdge(argNode.outs[0], node.ins[i]);
+            graphX.connectPorts(argNode.outs[0], node.ins[i]);
             return ins;
           }
         }, []);
@@ -123,16 +123,16 @@ function compileGraphAux(
         let emptyRef = graphX.addConstNode([], uuid);
         if (elems.length === 0) return emptyRef;
 
-        const repComponentId = graphX.graph().componentStore.specials.unOps["@"];
+        const repComponentId = graphX.componentStore.specials.unOps["@"];
         const repNodeId = `${repComponentId.split("/")[1]}_${uuid}`;
-        emptyRef = graphX.connect(emptyRef, graphX.graph().addNode(repNodeId, repComponentId));
+        emptyRef = graphX.connect(emptyRef, graphX.addNode(repNodeId, repComponentId));
 
         const elemRefs = elems.map(build);
         return elemRefs.reduce(
           (arr, elem, elemIdx) => {
             util.assertOutArity(1, elem);
-            const componentId = graphX.graph().componentStore.specials.arrayPush;
-            const node = graphX.graph().addNode(`ArrayPush: #${uuid}_${elemIdx}`, componentId);
+            const componentId = graphX.componentStore.specials.arrayPush;
+            const node = graphX.addNode(`ArrayPush: #${uuid}_${elemIdx}`, componentId);
             return graphX.connectBin(arr, elem, node);
           },
           emptyRef
@@ -142,20 +142,20 @@ function compileGraphAux(
         let emptyRef = graphX.addConstNode({}, uuid);
         if (elems.length === 0) return emptyRef;
 
-        const repComponentId = graphX.graph().componentStore.specials.unOps["@"];
+        const repComponentId = graphX.componentStore.specials.unOps["@"];
         const repNodeId = `${repComponentId.split("/")[1]}_${uuid}`;
-        emptyRef = graphX.connect(emptyRef, graphX.graph().addNode(repNodeId, repComponentId));
+        emptyRef = graphX.connect(emptyRef, graphX.addNode(repNodeId, repComponentId));
 
         const elemRefs: [PartRef, PartRef][] = elems.map(([k, v]) => [build(k), build(v)]);
         return elemRefs.reduce(
           (obj, [key, value], elemIdx) => {
             util.assertOutArity(1, key);
             util.assertOutArity(1, value);
-            const componentId = graphX.graph().componentStore.specials.objectSet;
-            const node = graphX.graph().addNode(`SetPropertyValue: #${uuid}_${elemIdx}`, componentId);
-            graphX.graph().addEdge(key.outs[0], node.ins[0]);
-            graphX.graph().addEdge(value.outs[0], node.ins[1]);
-            graphX.graph().addEdge(obj.outs[0], node.ins[2]);
+            const componentId = graphX.componentStore.specials.objectSet;
+            const node = graphX.addNode(`SetPropertyValue: #${uuid}_${elemIdx}`, componentId);
+            graphX.connectPorts(key.outs[0], node.ins[0]);
+            graphX.connectPorts(value.outs[0], node.ins[1]);
+            graphX.connectPorts(obj.outs[0], node.ins[2]);
             return { ins: [], outs: node.outs };
           },
           emptyRef
@@ -166,7 +166,7 @@ function compileGraphAux(
         return { ins: [], outs: [] };
       },
       Void: () => {
-        return graphX.graph().getVoidNode();
+        return GraphBuilder.getVoidNode();
       }
     });
   }
@@ -176,17 +176,18 @@ function compileGraphAux(
 
 function compileGraph(
   ast: SSNode,
-  graph: Graph,
+  componentStore: ComponentStore<unknown>,
   importRootDir: string,
-  preludeModule: string | null = "core"): void {
+  preludeModule: string | null = "core"): Graph {
 
-  const graphX = new GraphX(graph, preludeModule);
+  const graphX = new GraphBuilder(componentStore, preludeModule);
 
   if (preludeModule) {
     const moduleAst = parser.parseFile(`${importRootDir}/${preludeModule}.ss`);
     compileGraphAux(moduleAst, graphX, importRootDir, preludeModule);
   }
   compileGraphAux(ast, graphX, importRootDir, null);
+  return graphX.rootGraph();
 }
 
 export default { compileGraph };
