@@ -1,4 +1,3 @@
-import util from "./compiler/util";
 import DeepMap from "./util/DeepMap";
 import { ComponentStore } from "./types";
 
@@ -101,40 +100,6 @@ class Graph {
     if (from.nodeId !== Graph.VOID_NODE && to.nodeId !== Graph.VOID_NODE) {
       this.edges.push({ from, to });
     }
-  }
-
-  connectNodes(from: NodeSpec, to: NodeSpec, closeIns = true): NodeSpec {
-    util.assertConnectArity(from, to);
-    for (let i = 0; i < to.ins.length; i++) {
-      this.connectPorts(from.outs[i], to.ins[i]);
-    }
-    return { ins: closeIns ? [] : from.ins, outs: to.outs };
-  }
-
-  connectNodesBin(from1: NodeSpec, from2: NodeSpec, to: NodeSpec): NodeSpec {
-    return this.connectNodesMulti([from1, from2], to);
-  }
-
-  connectNodesMulti(from: NodeSpec[], to: NodeSpec, closeIns = true): NodeSpec {
-    for (let k = 0; k < from.length; k++) {
-      util.assertOutArity(1, from[k]);
-    }
-    util.assertInArity(from.length, to);
-    for (let k = 0; k < from.length; k++) {
-      this.connectPorts(from[k].outs[0], to.ins[k]);
-    }
-    return { ins: closeIns ? [] : from.map(e => e.ins[0]), outs: to.outs };
-  }
-
-  connectNodesMultiFluid(from: NodeSpec[], to: NodeSpec, closeIns = true): NodeSpec {
-    util.assertInArity(from.reduce((sum, e) => sum + e.outs.length, 0), to);
-    let toIdx = 0;
-    for (let k = 0; k < from.length; k++) {
-      for (let i = 0; i < from[k].outs.length; i++) {
-        this.connectPorts(from[k].outs[i], to.ins[toIdx++]);
-      }
-    }
-    return { ins: closeIns ? [] : from.flatMap(e => e.ins), outs: to.outs };
   }
 
   getSubgraph(subgraphId): Graph {

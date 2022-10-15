@@ -1,4 +1,5 @@
 import Graph, { NodeSpec } from "../graph";
+import util from "./util";
 
 type Scope = {
   id: string;
@@ -17,6 +18,40 @@ class GraphX {
 
   graph(): Graph {
     return this.scopes[this.scopes.length - 1].graph;
+  }
+
+  connectNodes(from: NodeSpec, to: NodeSpec, closeIns = true): NodeSpec {
+    util.assertConnectArity(from, to);
+    for (let i = 0; i < to.ins.length; i++) {
+      this.graph().connectPorts(from.outs[i], to.ins[i]);
+    }
+    return { ins: closeIns ? [] : from.ins, outs: to.outs };
+  }
+
+  connectNodesBin(from1: NodeSpec, from2: NodeSpec, to: NodeSpec): NodeSpec {
+    return this.connectNodesMulti([from1, from2], to);
+  }
+
+  connectNodesMulti(from: NodeSpec[], to: NodeSpec, closeIns = true): NodeSpec {
+    for (let k = 0; k < from.length; k++) {
+      util.assertOutArity(1, from[k]);
+    }
+    util.assertInArity(from.length, to);
+    for (let k = 0; k < from.length; k++) {
+      this.graph().connectPorts(from[k].outs[0], to.ins[k]);
+    }
+    return { ins: closeIns ? [] : from.map(e => e.ins[0]), outs: to.outs };
+  }
+
+  connectNodesMultiFluid(from: NodeSpec[], to: NodeSpec, closeIns = true): NodeSpec {
+    util.assertInArity(from.reduce((sum, e) => sum + e.outs.length, 0), to);
+    let toIdx = 0;
+    for (let k = 0; k < from.length; k++) {
+      for (let i = 0; i < from[k].outs.length; i++) {
+        this.graph().connectPorts(from[k].outs[i], to.ins[toIdx++]);
+      }
+    }
+    return { ins: closeIns ? [] : from.flatMap(e => e.ins), outs: to.outs };
   }
 
   addConstNode(value: unknown, uuid: string): NodeSpec {
