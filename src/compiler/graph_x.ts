@@ -1,4 +1,5 @@
-import Graph, { NodeSpec } from "../graph";
+import Graph, { PartRef } from "./graph";
+import util from "./util";
 
 type Scope = {
   id: string;
@@ -19,7 +20,41 @@ class GraphX {
     return this.scopes[this.scopes.length - 1].graph;
   }
 
-  addConstNode(value: unknown, uuid: string): NodeSpec {
+  connect(from: PartRef, to: PartRef, closeIns = true): PartRef {
+    util.assertConnectArity(from, to);
+    for (let i = 0; i < to.ins.length; i++) {
+      this.graph().addEdge(from.outs[i], to.ins[i]);
+    }
+    return { ins: closeIns ? [] : from.ins, outs: to.outs };
+  }
+
+  connectBin(from1: PartRef, from2: PartRef, to: PartRef): PartRef {
+    return this.connectMulti([from1, from2], to);
+  }
+
+  connectMulti(from: PartRef[], to: PartRef, closeIns = true): PartRef {
+    for (let k = 0; k < from.length; k++) {
+      util.assertOutArity(1, from[k]);
+    }
+    util.assertInArity(from.length, to);
+    for (let k = 0; k < from.length; k++) {
+      this.graph().addEdge(from[k].outs[0], to.ins[k]);
+    }
+    return { ins: closeIns ? [] : from.map(e => e.ins[0]), outs: to.outs };
+  }
+
+  connectMultiFluid(from: PartRef[], to: PartRef, closeIns = true): PartRef {
+    util.assertInArity(from.reduce((sum, e) => sum + e.outs.length, 0), to);
+    let toIdx = 0;
+    for (let k = 0; k < from.length; k++) {
+      for (let i = 0; i < from[k].outs.length; i++) {
+        this.graph().addEdge(from[k].outs[i], to.ins[toIdx++]);
+      }
+    }
+    return { ins: closeIns ? [] : from.flatMap(e => e.ins), outs: to.outs };
+  }
+
+  addConstNode(value: unknown, uuid: string): PartRef {
     const node = this.graph().addNode(
       this.nodeIdForConst(value, uuid),
       this.graph().componentStore.specials.identity
@@ -32,9 +67,9 @@ class GraphX {
     moduleName: string | null,
     name: string,
     forceNew = false,
-    isFullyQualified: boolean = moduleName !== null): NodeSpec {
+    isFullyQualified: boolean = moduleName !== null): PartRef {
 
-    const linkImplicit = (externalName: string): NodeSpec => {
+    const linkImplicit = (externalName: string): PartRef => {
       const nodeIn = this.graph().addNode(
         this.nodeIdForProxyVar(moduleName, name, "in"),
         this.graph().componentStore.specials.identity
@@ -76,10 +111,10 @@ class GraphX {
     }
   }
 
-  addFunctionNode(moduleName: string | null, name: string, uuid: string): NodeSpec {
+  addFunctionNode(moduleName: string | null, name: string, uuid: string): PartRef {
     const fullName = this.fullVarName(moduleName, name);
     const nodeId = `Function: ${fullName} #${uuid}`;
-    let node: NodeSpec | null = null;
+    let node: PartRef | null = null;
     for (let i = this.scopes.length - 1; i >= 0; i--) {
       const subgraphOpt = this.scopes[i].graph.subgraphs.get(fullName);
       if (subgraphOpt) {
@@ -104,7 +139,7 @@ class GraphX {
         this.addVarNode(spl[0], spl[1]) :
         this.addVarNode(null, spl[0]);
 
-      this.graph().connectPorts(extNode.outs[0], { nodeId, portName: p.portName });
+      this.graph().addEdge(extNode.outs[0], { nodeId, portName: p.portName });
     });
     subgraph.externalOuts.filter(p => p.implicit).forEach(p => {
       const spl = p.portName.split(".");
@@ -112,12 +147,12 @@ class GraphX {
         this.addVarNode(spl[0], spl[1]) :
         this.addVarNode(null, spl[0]);
 
-      this.graph().connectPorts({ portName: p.portName, nodeId }, extNode.ins[0]);
+      this.graph().addEdge({ portName: p.portName, nodeId }, extNode.ins[0]);
     });
     return node;
   }
 
-  addExternNode(componentId: string, uuid: string): NodeSpec {
+  addExternNode(componentId: string, uuid: string): PartRef {
     return this.graph().addNode(`Extern: ${componentId} #${uuid}`, componentId);
   }
 
