@@ -1,7 +1,6 @@
 import { walk } from "./fs_util";
 import parser from "../src/parser";
 import { importRootDir, loader } from "../src/runtime";
-import Graph from "../src/compiler/graph";
 import compiler from "../src/compiler";
 
 describe("graph_compiler", function () {
@@ -15,8 +14,7 @@ describe("graph_compiler", function () {
       } catch (ex) {
         this.skip();
       }
-      const graph = new Graph(componentStore);
-      compiler.compileGraph(ast, graph, importRootDir);
+      compiler.compileGraph(ast, componentStore, importRootDir);
     });
   });
 });
