@@ -1,43 +1,66 @@
-import DeepMap from "./util/DeepMap";
-import { ComponentStore } from "./types";
+import DeepMap from "../util/DeepMap";
+import { ComponentStore } from "../types";
 
-export type InPort = { nodeId: string; portName: string };
-export type OutPort = { nodeId: string; portName: string };
-
-export type NodeImpl =
+/**
+ * A node in the graph, containing information about how it should be instantiated.
+ */
+export type Node =
   { componentId: string } |
-  { subgraphId: string }
+  { subgraphId: string };
 
-export type NodeSpec = {
-  ins: InPort[];
-  outs: OutPort[];
+/**
+ * An object that uniquely identifies an in port in the graph.
+ */
+export type InPortRef = { nodeId: string; portName: string };
+
+/**
+ * An object that uniquely identifies an out port in the graph.
+ */
+export type OutPortRef = { nodeId: string; portName: string };
+
+/**
+ * A specification of an edge in the graph.
+ */
+export type Edge = {
+  from: OutPortRef;
+  to: InPortRef;
 };
 
-export type ExternalInPort = {
+/**
+ * A reference to a connected section of this graph. A graph part can include one or more connected
+ * nodes and can be seen as a single node in that it defines in and out ports.
+ */
+export type PartRef = {
+  ins: InPortRef[];
+  outs: OutPortRef[];
+};
+
+/**
+ * A reference to an in port of the graph that is to be exposed externally.
+ */
+export type ExtInPortRef = {
   portName: string;
-  innerPort: InPort;
+  innerPort: InPortRef;
   implicit: boolean;
 };
 
-export type ExternalOutPort = {
+/**
+ * A reference to an out port of the graph that is to be exposed externally.
+ */
+export type ExtOutPortRef = {
   portName: string;
-  innerPort: OutPort;
+  innerPort: OutPortRef;
   implicit: boolean;
-};
-
-export type EdgeSpec = {
-  from: OutPort;
-  to: InPort;
 };
 
 class Graph {
   componentStore: ComponentStore<unknown>;
-  nodes: DeepMap<string, NodeImpl>;
-  edges: EdgeSpec[];
-  initials: DeepMap<InPort, unknown>;
+  nodes: DeepMap<string, Node>;
+  edges: Edge[];
+  initials: DeepMap<InPortRef, unknown>;
   subgraphs: DeepMap<string, Graph>;
-  externalIns: ExternalInPort[];
-  externalOuts: ExternalOutPort[];
+  externalIns: ExtInPortRef[];
+  externalOuts: ExtOutPortRef[];
 
   static VOID_NODE = "void";
 
@@ -51,7 +74,7 @@ class Graph {
     this.externalOuts = [];
   }
 
-  addNode(nodeId: string, componentId: string): NodeSpec {
+  addNode(nodeId: string, componentId: string): PartRef {
     const component = this.componentStore.components[componentId];
     if (!component) {
       throw new Error(`Unknown component: ${componentId}`);
@@ -60,7 +83,7 @@ class Graph {
     return this.getNode(nodeId);
   }
 
-  addSubgraphNode(nodeId: string, subgraphId: string): NodeSpec {
+  addSubgraphNode(nodeId: string, subgraphId: string): PartRef {
     this.subgraphs.getOrElse(subgraphId, () => {
       throw new Error(`Unknown subgraph: ${subgraphId}`);
     });
@@ -68,7 +91,7 @@ class Graph {
     return this.getNode(nodeId);
   }
 
-  getNode(nodeId: string): NodeSpec {
+  getNode(nodeId: string): PartRef {
     if (nodeId === Graph.VOID_NODE) {
       return this.getVoidNode();
     }
@@ -88,21 +111,21 @@ class Graph {
       const subgraph = this.subgraphs.getOrElse(nodeImpl.subgraphId, () => {
         throw new Error(`Unknown subgraph: ${nodeImpl.subgraphId}`);
       });
-      return subgraph.asNodeSpec(nodeId);
+      return subgraph.asSubgraphRef(nodeId);
     }
   }
 
-  setInitial(port: InPort, value: unknown): void {
+  setInitial(port: InPortRef, value: unknown): void {
     this.initials.set(port, value);
   }
 
-  connectPorts(from: OutPort, to: InPort): void {
+  addEdge(from: OutPortRef, to: InPortRef): void {
     if (from.nodeId !== Graph.VOID_NODE && to.nodeId !== Graph.VOID_NODE) {
       this.edges.push({ from, to });
     }
   }
 
-  getSubgraph(subgraphId): Graph {
+  getSubgraph(subgraphId: string): Graph {
     return this.subgraphs.getOrElse(subgraphId, () => {
       throw new Error(`Unknown subgraph: ${subgraphId}`);
     });
@@ -112,15 +135,15 @@ class Graph {
     this.subgraphs.set(subgraphId, subgraph);
   }
 
-  addExternalIn(portName: string, innerPort: InPort, implicit = false): void {
+  addExternalIn(portName: string, innerPort: InPortRef, implicit = false): void {
     this.externalIns.push({ portName, innerPort, implicit });
   }
 
-  addExternalOut(portName: string, innerPort: OutPort, implicit = false): void {
+  addExternalOut(portName: string, innerPort: OutPortRef, implicit = false): void {
     this.externalOuts.push({ portName, innerPort, implicit });
   }
 
-  asNodeSpec(nodeId: string): NodeSpec {
+  asSubgraphRef(nodeId: string): PartRef {
     return {
       ins: this.externalIns.filter(p => !p.implicit)
         .map(p => ({ portName: p.portName, nodeId })),
@@ -129,7 +152,7 @@ class Graph {
     };
   }
 
-  getVoidNode(): NodeSpec {
+  getVoidNode(): PartRef {
     return {
       ins: [{ nodeId: Graph.VOID_NODE, portName: "in" }],
       outs: [{ nodeId: Graph.VOID_NODE, portName: "out" }]

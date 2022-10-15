@@ -1,4 +1,4 @@
-import Graph from "../graph";
+import Graph from "../compiler/graph";
 import { ComponentStore } from "../types";
 import { Component, Publisher, Subscriber } from "./types";
 import { ComponentClass } from "./component_loader";

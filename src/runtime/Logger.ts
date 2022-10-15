@@ -1,5 +1,5 @@
 import fs from "fs";
-import { InPort, OutPort } from "../graph";
+import { InPortRef, OutPortRef } from "../compiler/graph";
 import { Subscriber } from "./types";
 
 class Logger {
@@ -11,7 +11,7 @@ class Logger {
     this.out = fs.createWriteStream(filePrefix);
   }
 
-  edgeSubscriber(from: OutPort, to: InPort, graphName?: string): [Subscriber<unknown>, (n: number) => void, () => void] {
+  edgeSubscriber(from: OutPortRef, to: InPortRef, graphName?: string): [Subscriber<unknown>, (n: number) => void, () => void] {
     return this._baseEdgeSubscriber(
       `${from.nodeId}[${from.portName}]`,
       `${to.nodeId}[${to.portName}]`,
@@ -19,7 +19,7 @@ class Logger {
     );
   }
 
-  edgeInitialSubscriber(initial: unknown, port: InPort, graphName?: string): [Subscriber<unknown>, (n: number) => void, () => void] {
+  edgeInitialSubscriber(initial: unknown, port: InPortRef, graphName?: string): [Subscriber<unknown>, (n: number) => void, () => void] {
     return this._baseEdgeSubscriber(
       `INITIAL(${JSON.stringify(initial)})`,
       `${port.nodeId}[${port.portName}]`,

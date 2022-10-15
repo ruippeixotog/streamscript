@@ -4,7 +4,7 @@ import parser from "./parser";
 import { importRootDir, loader, runner } from "./runtime";
 import compiler from "./compiler";
 import printer from "./graph_printer";
-import Graph from "./graph";
+import Graph from "./compiler/graph";
 
 async function runFile(filename: string): Promise<void> {
   console.log(`parsing ${filename}...`);

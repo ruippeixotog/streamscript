@@ -1,20 +1,20 @@
 import assert from "assert";
 import { run } from "../parser/ast";
-import Graph from "../graph";
+import Graph from "./graph";
 import util from "./util";
 import GraphX from "./graph_x";
 import parser from "../parser";
 import type { SSNode } from "../parser/ast";
-import type { InPort, NodeSpec } from "../graph";
+import type { InPortRef, PartRef } from "./graph";
 
 function compileGraphAux(
   ast: SSNode,
   graphX: GraphX,
   importRootDir: string,
-  thisModuleName: string | null): NodeSpec {
+  thisModuleName: string | null): PartRef {
 
-  function build(node: SSNode): NodeSpec {
-    return run<NodeSpec>(node, {
+  function build(node: SSNode): PartRef {
+    return run<PartRef>(node, {
       Module: ({ stmts }) => {
         stmts.forEach(build);
         return { ins: [], outs: [] };
@@ -34,33 +34,33 @@ function compileGraphAux(
         return { ins: [], outs: [] };
       },
       BinOp: ({ uuid, operator, lhs, rhs }) => {
-        const [lhsSpec, rhsSpec] = [build(lhs), build(rhs)];
+        const [lhsRef, rhsRef] = [build(lhs), build(rhs)];
         if (operator === "->") {
-          return graphX.connectNodes(lhsSpec, rhsSpec, false);
+          return graphX.connect(lhsRef, rhsRef, false);
         }
         if (operator === "<-") {
-          return graphX.connectNodes(rhsSpec, lhsSpec, false);
+          return graphX.connect(rhsRef, lhsRef, false);
         }
         const componentId = graphX.graph().componentStore.specials.binOps[operator];
         const nodeId = `${componentId.split("/")[1]}: #${uuid}`;
-        return graphX.connectNodesBin(lhsSpec, rhsSpec, graphX.graph().addNode(nodeId, componentId));
+        return graphX.connectBin(lhsRef, rhsRef, graphX.graph().addNode(nodeId, componentId));
       },
       UnOp: ({ uuid, operator, arg }) => {
-        const argSpec = build(arg);
+        const argRef = build(arg);
 
         const componentId = graphX.graph().componentStore.specials.unOps[operator];
         const nodeId = `${componentId.split("/")[1]}_${uuid}`;
-        return graphX.connectNodes(argSpec, graphX.graph().addNode(nodeId, componentId));
+        return graphX.connect(argRef, graphX.graph().addNode(nodeId, componentId));
       },
       Var: ({ moduleName, name }) => {
         return graphX.addVarNode(moduleName ?? thisModuleName, name, false, moduleName !== null);
       },
       Index: ({ uuid, coll, index }) => {
-        const [collSpec, indexSpec] = [build(coll), build(index)];
-        util.assertOutArity(1, collSpec);
-        util.assertOutArity(1, indexSpec);
+        const [collRef, indexRef] = [build(coll), build(index)];
+        util.assertOutArity(1, collRef);
+        util.assertOutArity(1, indexRef);
         const node = graphX.graph().addNode(`Index_${uuid}`, graphX.graph().componentStore.specials.index);
-        return graphX.connectNodesBin(collSpec, indexSpec, node);
+        return graphX.connectBin(collRef, indexRef, node);
       },
       Lambda: ({ uuid, ins, outs, body }) => {
         if (!outs) {
@@ -95,13 +95,13 @@ function compileGraphAux(
         const node = graphX.addFunctionNode(func.moduleName ?? thisModuleName, func.name, uuid);
         util.assertInArity(args.length, node);
 
-        const openIns = args.reduce<InPort[]>((ins, arg, i) => {
+        const openIns = args.reduce<InPortRef[]>((ins, arg, i) => {
           if (arg.type === "Wildcard") {
             return ins.concat(node.ins[i]);
           } else {
             const argNode = build(arg);
             util.assertOutArity(1, argNode);
-            graphX.graph().connectPorts(argNode.outs[0], node.ins[i]);
+            graphX.graph().addEdge(argNode.outs[0], node.ins[i]);
             return ins;
           }
         }, []);
@@ -109,56 +109,56 @@ function compileGraphAux(
         return { ins: openIns, outs: node.outs };
       },
       Tuple: ({ elems }) => {
-        const elemSpecs = elems.map(build);
-        const ins = elemSpecs.every(e => e.ins.length === 1) ? elemSpecs.map(e => e.ins[0]) : [];
-        const outs = elemSpecs.every(e => e.outs.length === 1) ? elemSpecs.map(e => e.outs[0]) : [];
+        const elemRefs = elems.map(build);
+        const ins = elemRefs.every(e => e.ins.length === 1) ? elemRefs.map(e => e.ins[0]) : [];
+        const outs = elemRefs.every(e => e.outs.length === 1) ? elemRefs.map(e => e.outs[0]) : [];
 
-        if (elemSpecs.length !== 0 && ins.length === 0 && outs.length === 0) {
+        if (elemRefs.length !== 0 && ins.length === 0 && outs.length === 0) {
           throw new Error("bad tuple");
         }
         return { ins, outs };
       },
       Literal: ({ uuid, value }) => graphX.addConstNode(value, uuid),
       Array: ({ uuid, elems }) => {
-        let emptySpec = graphX.addConstNode([], uuid);
-        if (elems.length === 0) return emptySpec;
+        let emptyRef = graphX.addConstNode([], uuid);
+        if (elems.length === 0) return emptyRef;
 
         const repComponentId = graphX.graph().componentStore.specials.unOps["@"];
         const repNodeId = `${repComponentId.split("/")[1]}_${uuid}`;
-        emptySpec = graphX.connectNodes(emptySpec, graphX.graph().addNode(repNodeId, repComponentId));
+        emptyRef = graphX.connect(emptyRef, graphX.graph().addNode(repNodeId, repComponentId));
 
-        const elemSpecs = elems.map(build);
-        return elemSpecs.reduce(
+        const elemRefs = elems.map(build);
+        return elemRefs.reduce(
           (arr, elem, elemIdx) => {
             util.assertOutArity(1, elem);
             const componentId = graphX.graph().componentStore.specials.arrayPush;
             const node = graphX.graph().addNode(`ArrayPush: #${uuid}_${elemIdx}`, componentId);
-            return graphX.connectNodesBin(arr, elem, node);
+            return graphX.connectBin(arr, elem, node);
           },
-          emptySpec
+          emptyRef
         );
       },
       Object: ({ uuid, elems }) => {
-        let emptySpec = graphX.addConstNode({}, uuid);
-        if (elems.length === 0) return emptySpec;
+        let emptyRef = graphX.addConstNode({}, uuid);
+        if (elems.length === 0) return emptyRef;
 
         const repComponentId = graphX.graph().componentStore.specials.unOps["@"];
         const repNodeId = `${repComponentId.split("/")[1]}_${uuid}`;
-        emptySpec = graphX.connectNodes(emptySpec, graphX.graph().addNode(repNodeId, repComponentId));
+        emptyRef = graphX.connect(emptyRef, graphX.graph().addNode(repNodeId, repComponentId));
 
-        const elemSpecs: [NodeSpec, NodeSpec][] = elems.map(([k, v]) => [build(k), build(v)]);
-        return elemSpecs.reduce(
+        const elemRefs: [PartRef, PartRef][] = elems.map(([k, v]) => [build(k), build(v)]);
+        return elemRefs.reduce(
           (obj, [key, value], elemIdx) => {
             util.assertOutArity(1, key);
             util.assertOutArity(1, value);
             const componentId = graphX.graph().componentStore.specials.objectSet;
             const node = graphX.graph().addNode(`SetPropertyValue: #${uuid}_${elemIdx}`, componentId);
-            graphX.graph().connectPorts(key.outs[0], node.ins[0]);
-            graphX.graph().connectPorts(value.outs[0], node.ins[1]);
-            graphX.graph().connectPorts(obj.outs[0], node.ins[2]);
+            graphX.graph().addEdge(key.outs[0], node.ins[0]);
+            graphX.graph().addEdge(value.outs[0], node.ins[1]);
+            graphX.graph().addEdge(obj.outs[0], node.ins[2]);
             return { ins: [], outs: node.outs };
           },
-          emptySpec
+          emptyRef
         );
       },
       Wildcard: () => {

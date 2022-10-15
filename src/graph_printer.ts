@@ -1,4 +1,4 @@
-import Graph, { InPort, OutPort } from "./graph";
+import Graph, { InPortRef, OutPortRef } from "./compiler/graph";
 import graphviz from "graphviz";
 import DeepMap from "./util/DeepMap";
 
@@ -30,13 +30,13 @@ function buildGraphvizGraph(
 
   const localIdFor = (nodeId: string): string => fullIdFor(nodeId, graphName);
 
-  const inPortVizNames = new DeepMap<InPort, [string, string]>();
-  const outPortVizNames = new DeepMap<InPort, [string, string]>();
+  const inPortVizNames = new DeepMap<InPortRef, [string, string]>();
+  const outPortVizNames = new DeepMap<InPortRef, [string, string]>();
 
-  const idForInPort = (port: InPort): [string, string] =>
+  const idForInPort = (port: InPortRef): [string, string] =>
     inPortVizNames.getOrElse(port, () => [localIdFor(port.nodeId), port.portName]);
 
-  const idForOutPort = (port: OutPort): [string, string] =>
+  const idForOutPort = (port: OutPortRef): [string, string] =>
     outPortVizNames.getOrElse(port, () => [localIdFor(port.nodeId), port.portName]);
 
   const nodeLabel = (label: string, sublabel?: string): string =>
