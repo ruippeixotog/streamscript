@@ -50,7 +50,7 @@ async function main(argv: Argv): Promise<void> {
   }
 
   console.log(`running ${argv.file}...`);
-  await runner.runGraph(graph, componentStore);
+  await runner.runGraph(graph, componentStore).whenTerminated();
 }
 
 parseArgs()

@@ -4,6 +4,11 @@ import fs from "fs";
 const fsReaddir = util.promisify(fs.readdir);
 const fsStat = util.promisify(fs.stat);
 
+export const deepLsSync = (dir: string): string[] =>
+  fs.readdirSync(dir)
+    .map(f => dir + "/" + f)
+    .flatMap(f => fs.statSync(f).isDirectory() ? deepLsSync(f) : [f]);
+
 export const forEach = async (dir: string, f: (file: string, stat: fs.Stats) => Promise<void>): Promise<void> => {
   const files = await fsReaddir(dir);
   await Promise.all(
