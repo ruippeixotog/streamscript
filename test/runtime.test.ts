@@ -3,12 +3,15 @@ import parser from "../src/parser";
 import { importRootDir, loader, runner } from "../src/runtime";
 import compiler from "../src/compiler";
 import { Component } from "../src/runtime/types";
+import Logger from "../src/runtime/Logger";
 
 describe("runtime", function () {
 
   function testRun(folder: string): void {
     const realStdout = process.stdout.write;
     const componentStore = loader.loadComponents();
+    const logger = new Logger("/dev/null");
+
     let comp: Component<unknown[], unknown[]> | undefined = undefined;
 
     deepLsSync(folder).forEach(file => {
@@ -28,7 +31,7 @@ describe("runtime", function () {
           this.skip();
         }
         process.stdout.write = () => true;
-        comp = runner.runGraph(graph, await componentStore);
+        comp = runner.runGraph(graph, await componentStore, logger);
         await comp.whenTerminated();
       });
     });

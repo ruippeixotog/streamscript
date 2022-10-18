@@ -6,6 +6,7 @@ import parser from "./parser";
 import { importRootDir, loader, runner } from "./runtime";
 import compiler from "./compiler";
 import printer from "./graph_printer";
+import Logger from "./runtime/Logger";
 
 type Argv = {
   file: string,
@@ -50,7 +51,8 @@ async function main(argv: Argv): Promise<void> {
   }
 
   console.log(`running ${argv.file}...`);
-  await runner.runGraph(graph, componentStore).whenTerminated();
+  const logger = new Logger("out/packets.log");
+  await runner.runGraph(graph, componentStore, logger).whenTerminated();
 }
 
 parseArgs()

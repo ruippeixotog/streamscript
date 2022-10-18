@@ -83,10 +83,9 @@ function toComponent(
 
 function runGraph(
   graph: Graph,
-  componentStore: ComponentStore<ComponentClass>
+  componentStore: ComponentStore<ComponentClass>,
+  logger: Logger
 ): Component<unknown[], unknown[]> {
-
-  const logger = new Logger("out/packets.log");
   const comp = toComponent(graph, componentStore, logger);
   comp.start();
   return comp;
