@@ -41,7 +41,7 @@ class InPort<T> extends PortBase<T> implements Subscription {
           .forEach(s => {
             assert(
               s.demanded > 0,
-              `${this.name}: Illegal onNext on in port (${JSON.stringify(value)})`
+              `${this.name}: Illegal onNext on in port (${JSON.stringify(value)}) with no demand`
             );
             s.demanded--;
           });

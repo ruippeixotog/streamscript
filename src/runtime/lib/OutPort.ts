@@ -53,7 +53,7 @@ class OutPort<T> extends PortBase<T> implements Publisher<T> {
   send(t: T): void {
     assert(
       this.state === "active" || this.state === "draining_jobs" && this.demand > 0,
-      `${this.name}: Illegal send on out port (${JSON.stringify(t)})`
+      `${this.name}: Illegal send (${JSON.stringify(t)}) on out port in state ${this.state}`
     );
     this._sendInternal(t);
   }
@@ -61,7 +61,7 @@ class OutPort<T> extends PortBase<T> implements Publisher<T> {
   complete(): void {
     assert(
       this.state === "active" || this.state === "draining_jobs",
-      `${this.name}: Illegal complete on inactive out port`
+      `${this.name}: Illegal complete on out port in state ${this.state}`
     );
     this._startDrainSimple();
   }
@@ -69,7 +69,7 @@ class OutPort<T> extends PortBase<T> implements Publisher<T> {
   error(err: Error): void {
     assert(
       this.state === "active" || this.state === "draining_jobs",
-      `${this.name}: Illegal error on inactive out port`
+      `${this.name}: Illegal error on out port in state ${this.state}`
     );
     this._startDrainSimple(err);
   }
