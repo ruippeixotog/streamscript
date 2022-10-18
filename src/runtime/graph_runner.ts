@@ -81,11 +81,14 @@ function toComponent(
   };
 }
 
-async function runGraph(graph: Graph, componentStore: ComponentStore<ComponentClass>): Promise<void> {
-  const logger = new Logger("out/packets.log");
+function runGraph(
+  graph: Graph,
+  componentStore: ComponentStore<ComponentClass>,
+  logger: Logger
+): Component<unknown[], unknown[]> {
   const comp = toComponent(graph, componentStore, logger);
   comp.start();
-  await comp.whenTerminated();
+  return comp;
 }
 
 export default { runGraph };

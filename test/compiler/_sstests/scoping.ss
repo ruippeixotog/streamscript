@@ -1,3 +1,6 @@
+// FIXME: move to runtime
+// terminating due to staleness
+
 import io
 
 a1 <- 1

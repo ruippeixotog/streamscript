@@ -1,3 +1,6 @@
+// FIXME: move to runtime
+// throwing compilation error
+
 import io
 
 io.stdout <- fromArray([1, 10, 100, 1000]) * @5
