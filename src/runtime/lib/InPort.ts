@@ -38,9 +38,11 @@ class InPort<T> extends PortBase<T, Msg<T>> implements Subscription {
         this.subscriptions.push({ ref: s, demanded: 0 });
       },
 
+      /* eslint-disable @typescript-eslint/no-non-null-assertion */
       onNext: value => this.enqueueMessage({ type: "next", sub: sub!, value }),
       onComplete: () => this.enqueueMessage({ type: "complete", sub: sub! }),
       onError: err => this.enqueueMessage({ type: "error", sub: sub!, err })
+      /* eslint-enable @typescript-eslint/no-non-null-assertion */
     };
   }
 

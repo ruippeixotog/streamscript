@@ -9,6 +9,9 @@ describe("compiler", function () {
     const componentStore = loader.loadComponents();
 
     deepLsSync(folder).forEach(file => {
+      if (!file.endsWith(".ss")) {
+        return;
+      }
       it(file, async function () {
         let ast;
         try {

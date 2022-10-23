@@ -6,6 +6,9 @@ describe("parser", function () {
 
   function testParse(folder: string): void {
     deepLsSync(folder).forEach(file => {
+      if (!file.endsWith(".ss")) {
+        return;
+      }
       it(file, async function () {
         parser.parseFile(file);
       });
