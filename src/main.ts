@@ -35,10 +35,10 @@ async function parseArgs(): Promise<Argv> {
 }
 
 async function main(argv: Argv): Promise<void> {
-  console.log(`parsing ${argv.file}...`);
+  console.error(`parsing ${argv.file}...`);
   const ast = parser.parseFile(argv.file);
 
-  console.log(`compiling ${argv.file}...`);
+  console.error(`compiling ${argv.file}...`);
   const componentStore = await loader.loadComponents();
   const graph = compiler.compileGraph(ast, componentStore, importRootDir);
 
@@ -50,12 +50,12 @@ async function main(argv: Argv): Promise<void> {
     printer.toPNG(graph, "out/graph_full.png", true);
   }
 
-  console.log(`running ${argv.file}...`);
+  console.error(`running ${argv.file}...`);
   const logger = new Logger("out/packets.log");
   await runner.runGraph(graph, componentStore, logger).whenTerminated();
 }
 
 parseArgs()
   .then(main)
-  .then(() => console.log("Finished."))
+  .then(() => console.error("Finished."))
   .catch(err => console.error("ERROR:", err));
