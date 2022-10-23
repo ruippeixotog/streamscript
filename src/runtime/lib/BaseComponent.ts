@@ -16,33 +16,38 @@ abstract class BaseComponent<Ins extends unknown[], Outs extends unknown[]> impl
   abstract onNext(idx: number, value: Ins[number]): void;
   abstract onRequest(idx: number, n: number): void;
 
-  onError(idx: number, err: Error): void {
-    this.terminate(err);
-  }
+  onError(_idx: number, _err: Error): void {}
+  onComplete(_idx: number): void {}
+  onCancel(_idx: number): void {}
 
-  onComplete(_idx: number): void {
-    if (this.shouldTerminate()) {
-      this.terminate();
-    }
-  }
-
-  onCancel(_idx: number): void {
-    if (this.shouldTerminate()) {
-      this.terminate();
-    }
+  onTerminate(): Promise<unknown> {
+    return Promise.resolve();
   }
 
   constructor() {
     this.inPorts = this.spec.ins.map((name, i) => new InPort(`${this.constructor.name}[${name}]`, {
       onSubscribe: _ => {},
       onNext: value => this.onNext(i, value),
-      onError: err => this.onError(i, err),
-      onComplete: () => this.onComplete(i)
+      onError: err => {
+        this.terminate(err);
+        this.onError(i, err);
+      },
+      onComplete: () => {
+        if (this.shouldTerminate()) {
+          this.terminate();
+        }
+        this.onComplete(i);
+      }
     }));
 
     this.outPorts = this.spec.outs.map((name, i) => new OutPort(`${this.constructor.name}[${name}]`, {
       request: n => this.onRequest(i, n),
-      cancel: () => this.onCancel(i)
+      cancel: () => {
+        if (this.shouldTerminate()) {
+          this.terminate();
+        }
+        this.onCancel(i);
+      }
     }));
 
     Promise.all(this.inPorts.map(st => st.whenTerminated()))
@@ -61,8 +66,10 @@ abstract class BaseComponent<Ins extends unknown[], Outs extends unknown[]> impl
   }
 
   terminate(err?: Error): void {
-    this.inPorts.filter(p => !p.isTerminated()).forEach(p => p.cancel());
-    this.outPorts.filter(p => !p.isTerminated()).forEach(p => err ? p.error(err) : p.complete());
+    this.onTerminate().then(() => {
+      this.inPorts.filter(p => !p.isTerminated()).forEach(p => p.cancel());
+      this.outPorts.filter(p => !p.isTerminated()).forEach(p => err ? p.error(err) : p.complete());
+    });
   }
 
   whenTerminated(): Promise<unknown> {

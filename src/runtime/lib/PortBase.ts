@@ -1,56 +1,34 @@
-import AsyncJobStore from "../../util/AsyncJobStore";
 import Deferred from "../../util/Deferred";
+import Mailbox from "./Mailbox";
 
-type PortState = "active" | "draining_jobs" | "draining_messages" | "terminated";
+type PortState = "active" | "terminated";
 
-class PortBase<T> {
-  protected state: PortState = "active";
-
-  private queue: T[] = [];
-  private whenQueueDrainedHandler: Deferred<void> = new Deferred();
-
-  private jobScheduler: AsyncJobStore = new AsyncJobStore();
-  private messageScheduler: AsyncJobStore = new AsyncJobStore();
+abstract class PortBase<T, Msg> {
+  private state: PortState = "active";
+  private inbox: Mailbox<Msg> = new Mailbox(this.handleMessage.bind(this));
+  private dataQueue: T[] = [];
   private whenTerminatedHandler: Deferred<void> = new Deferred();
 
-  scheduleJob(f: () => unknown): void {
-    if (this.state !== "active") {
-      return;
-    }
-    this.jobScheduler.add(f);
-  }
-
-  scheduleJobAsync(f: () => Promise<unknown>): void {
-    if (this.state !== "active") {
-      return;
-    }
-    this.jobScheduler.addAsync(f);
-  }
-
-  protected scheduleMessage(f: () => unknown): void {
-    if (this.state === "terminated") {
-      return;
-    }
-    this.messageScheduler.add(f);
-  }
+  abstract handleMessage(msg: Msg): Promise<void>;
 
   protected queueSize(): number {
-    return this.queue.length;
+    return this.dataQueue.length;
   }
 
-  protected enqueue(t: T): void {
-    if (this.state === "draining_messages" || this.state === "terminated") {
-      return;
+  protected enqueueData(t: T): void {
+    if (!this.isTerminated()) {
+      this.dataQueue.push(t);
     }
-    this.queue.push(t);
   }
 
-  protected dequeque(): T | undefined {
-    const t = this.queue.shift();
-    if (this.queue.length === 0 && this.state === "draining_messages") {
-      this.whenQueueDrainedHandler.resolve();
+  protected dequequeData(): T | undefined {
+    return this.dataQueue.shift();
+  }
+
+  protected enqueueMessage(msg: Msg): void {
+    if (!this.isTerminated()) {
+      this.inbox.enqueue(msg);
     }
-    return t;
   }
 
   isTerminated(): boolean {
@@ -61,28 +39,8 @@ class PortBase<T> {
     return this.whenTerminatedHandler.promise;
   }
 
-  protected async _startDrain(
-    onElementsDrained: () => void,
-    onTerminated: () => void): Promise<void> {
-
-    if (this.state !== "active") {
-      return;
-    }
-    this.state = "draining_jobs";
-    this.jobScheduler.drain();
-    await this.jobScheduler.whenDrained();
-
-    this.state = "draining_messages";
-    if (this.queue.length === 0) {
-      this.whenQueueDrainedHandler.resolve();
-    }
-    await this.whenQueueDrainedHandler.promise;
-    onElementsDrained();
-    this.messageScheduler.drain();
-    await this.messageScheduler.whenDrained();
-
+  terminate(): void {
     this.state = "terminated";
-    onTerminated();
     this.whenTerminatedHandler.resolve();
   }
 }

@@ -1,9 +1,11 @@
+import AsyncJobStore from "../../util/AsyncJobStore";
 import BaseComponent from "./BaseComponent";
 import Deferred from "../../util/Deferred";
 
 abstract class PromiseComponent<Ins extends unknown[], Out> extends BaseComponent<Ins, [Out]> {
   private inPromises: Deferred<IteratorResult<Ins[number]>>[][];
   private inErrors: (Error | undefined)[];
+  private jobScheduler: AsyncJobStore = new AsyncJobStore();
 
   constructor() {
     super();
@@ -35,24 +37,27 @@ abstract class PromiseComponent<Ins extends unknown[], Out> extends BaseComponen
     this.inErrors[idx] = err;
     this.inPromises[idx].forEach(p => p.reject(err));
     this.inPromises[idx] = [];
-    super.onError(idx, err);
   }
 
   onComplete(idx: number): void {
     this.inPromises[idx].forEach(p => p.resolve({ value: undefined, done: true }));
     this.inPromises[idx] = [];
-    super.onComplete(idx);
   }
 
-  onRequest(idx: number, n: number): void {
+  onRequest(_idx: number, n: number): void {
     const outPort = this.outPort(0);
     for (let i = 0; i < n; i++) {
-      outPort.scheduleJobAsync(() =>
+      this.jobScheduler.addAsync(() =>
         this.processAsync()
           .then(v => v.done ? outPort.complete() : outPort.send(v.value))
           .catch(err => outPort.error(err))
       );
     }
+  }
+
+  onTerminate(): Promise<unknown> {
+    this.jobScheduler.drain();
+    return this.jobScheduler.whenDrained();
   }
 }
 

@@ -2,7 +2,12 @@ import assert from "assert";
 import { Subscriber, Subscription } from "../types";
 import PortBase from "./PortBase";
 
-class InPort<T> extends PortBase<T> implements Subscription {
+type Msg<T> =
+  { type: "next", sub: Subscription, value: T } |
+  { type: "complete", sub: Subscription } |
+  { type: "error", sub: Subscription, err: Error };
+
+class InPort<T> extends PortBase<T, Msg<T>> implements Subscription {
   private name: string;
   private compSubscriber: Subscriber<T>;
 
@@ -25,73 +30,81 @@ class InPort<T> extends PortBase<T> implements Subscription {
   }
 
   newSubscriber(): Subscriber<T> {
-    const localSubs: Subscription[] = [];
+    let sub: Subscription | undefined;
     return {
       onSubscribe: s => {
-        localSubs.push(s);
+        assert(!sub, `${this.name}: onSubscribe was called more than once`);
+        sub = s;
         this.subscriptions.push({ ref: s, demanded: 0 });
       },
 
-      onNext: value => {
-        if (this.state !== "active") {
+      onNext: value => this.enqueueMessage({ type: "next", sub: sub!, value }),
+      onComplete: () => this.enqueueMessage({ type: "complete", sub: sub! }),
+      onError: err => this.enqueueMessage({ type: "error", sub: sub!, err })
+    };
+  }
+
+  async handleMessage(msg: Msg<T>): Promise<void> {
+    switch (msg.type) {
+      case "next":
+        if (this.isTerminated()) {
           return;
         }
         this.subscriptions
-          .filter(s => localSubs.indexOf(s.ref) !== -1)
+          .filter(s => s.ref === msg.sub)
           .forEach(s => {
             assert(
               s.demanded > 0,
-              `${this.name}: Illegal onNext on in port (${JSON.stringify(value)}) with no demand`
+              `${this.name}: Illegal onNext on in port (${JSON.stringify(msg.value)}) with no demand`
             );
             s.demanded--;
           });
 
         if (this.demanded === 0) {
-          this.enqueue(value);
+          this.enqueueData(msg.value);
         } else {
           this.demanded--;
-          this.compSubscriber.onNext(value);
+          this.compSubscriber.onNext(msg.value);
         }
-      },
+        break;
 
-      onComplete: () => {
-        if (this.state !== "active") {
+      case "complete":
+        if (this.isTerminated()) {
           return;
         }
         this.subscriptions =
-          this.subscriptions.filter(s => localSubs.indexOf(s.ref) === -1);
+          this.subscriptions.filter(s => s.ref !== msg.sub);
 
         if (this.subscriptions.length === 0) {
-          this._startDrainSimple();
+          this.terminate();
+          this.compSubscriber.onComplete();
         }
-      },
+        break;
 
-      onError: err => {
-        if (this.state !== "active") {
+      case "error":
+        if (this.isTerminated()) {
           return;
         }
         this.subscriptions = [];
-        this._startDrainSimple(err);
-      }
-    };
+        this.terminate();
+        this.compSubscriber.onError(msg.err);
+    }
   }
 
   request(n: number): void {
     while (n > 0 && this.queueSize() > 0) {
-      this.compSubscriber.onNext(this.dequeque() as T);
+      this.compSubscriber.onNext(this.dequequeData() as T);
       n--;
     }
-    this.scheduleMessage(() => {
-      if (this.state === "active" || this.state === "draining_jobs") {
-        const innerDemanded = this.demanded += n;
-        this.subscriptions
-          .filter(s => s.demanded < innerDemanded)
-          .forEach(s => {
-            s.ref.request(innerDemanded - s.demanded);
-            s.demanded = innerDemanded;
-          });
-      }
-    });
+    if (!this.isTerminated()) {
+      const innerDemanded = this.demanded += n;
+      this.subscriptions
+        .filter(s => s.demanded < innerDemanded)
+        .forEach(s => {
+          s.ref.request(innerDemanded - s.demanded);
+          s.demanded = innerDemanded;
+        });
+    }
   }
 
   requested(): number {
@@ -99,15 +112,7 @@ class InPort<T> extends PortBase<T> implements Subscription {
   }
 
   cancel(): void {
-    this.subscriptions.forEach(s => this.scheduleMessage(() => s.ref.cancel()));
-  }
-
-  private _startDrainSimple(err?: Error): void {
-    this.cancel();
-    this._startDrain(
-      () => {},
-      () => err ? this.compSubscriber.onError(err) : this.compSubscriber.onComplete()
-    );
+    this.subscriptions.forEach(s => s.ref.cancel());
   }
 }
 

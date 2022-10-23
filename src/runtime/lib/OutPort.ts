@@ -1,8 +1,11 @@
-import assert from "assert";
 import { Publisher, Subscriber, Subscription } from "../types";
 import PortBase from "./PortBase";
 
-class OutPort<T> extends PortBase<T> implements Publisher<T> {
+type Msg<T> =
+  { type: "request", sub: Subscriber<T>, n: number } |
+  { type: "cancel", sub: Subscriber<T> };
+
+class OutPort<T> extends PortBase<T, Msg<T>> implements Publisher<T> {
   private name: string;
   private compSubscription: Subscription;
 
@@ -22,28 +25,37 @@ class OutPort<T> extends PortBase<T> implements Publisher<T> {
   subscribe<S extends T>(subscriber: Subscriber<S>): void {
     this.subscribers.push({ ref: subscriber, demand: 0 });
     subscriber.onSubscribe({
-      request: (n: number) => {
-        const subscriberEntries = this.subscribers
-          .filter(s0 => s0.ref === subscriber);
+      request: n => this.enqueueMessage({ type: "request", sub: subscriber, n }),
+      cancel: () => this.enqueueMessage({ type: "cancel", sub: subscriber })
+    });
+  }
 
-        if (subscriberEntries.length === 0) {
-          return;
+  async handleMessage(msg: Msg<T>): Promise<void> {
+    switch (msg.type) {
+      case "request":
+        {
+          const subscriberEntries = this.subscribers
+            .filter(s0 => s0.ref === msg.sub);
+
+          if (subscriberEntries.length === 0) {
+            return;
+          }
+          subscriberEntries.forEach(s0 => s0.demand += msg.n);
+          this._updateSharedDemand();
         }
-        subscriberEntries.forEach(s0 => s0.demand += n);
-        this._updateSharedDemand();
-      },
-      cancel: () => {
-        this.scheduleMessage(() => subscriber.onComplete());
+        break;
+      case "cancel":
+        msg.sub.onComplete();
         this.subscribers =
-            this.subscribers.filter(s0 => s0.ref !== subscriber);
+            this.subscribers.filter(s0 => s0.ref !== msg.sub);
 
         if (this.subscribers.length === 0) {
-          this._startDrainSimple();
+          this.compSubscription.cancel();
+          this.terminate();
         } else {
           this._updateSharedDemand();
         }
-      }
-    });
+    }
   }
 
   requested(): number {
@@ -51,36 +63,37 @@ class OutPort<T> extends PortBase<T> implements Publisher<T> {
   }
 
   send(t: T): void {
-    assert(
-      this.state === "active" || this.state === "draining_jobs" && this.demand > 0,
-      `${this.name}: Illegal send (${JSON.stringify(t)}) on out port in state ${this.state}`
-    );
-    this._sendInternal(t);
+    if (this.isTerminated()) {
+      return;
+    }
+    this.subscribers.forEach(s => s.ref.onNext(t));
+    this.demand--;
   }
 
   complete(): void {
-    assert(
-      this.state === "active" || this.state === "draining_jobs",
-      `${this.name}: Illegal complete on out port in state ${this.state}`
-    );
-    this._startDrainSimple();
+    if (this.isTerminated()) {
+      return;
+    }
+    this.subscribers.forEach(s => s.ref.onComplete());
+    // TODO: check if this line is needed
+    this.subscribers = [];
+    this.terminate();
+    this.compSubscription.cancel();
   }
 
   error(err: Error): void {
-    assert(
-      this.state === "active" || this.state === "draining_jobs",
-      `${this.name}: Illegal error on out port in state ${this.state}`
-    );
-    this._startDrainSimple(err);
+    if (this.isTerminated()) {
+      return;
+    }
+    this.subscribers.forEach(s => s.ref.onError(err));
+    // TODO: check if this line is needed
+    this.subscribers = [];
+    this.terminate();
+    this.compSubscription.cancel();
   }
 
   sendOrEnqueue(t: T): void {
-    this.demand > 0 ? this.send(t) : this.enqueue(t);
-  }
-
-  private _sendInternal(t: T): void {
-    this.subscribers.forEach(s => this.scheduleMessage(() => s.ref.onNext(t)));
-    this.demand--;
+    this.demand > 0 ? this.send(t) : this.enqueueData(t);
   }
 
   private _updateSharedDemand(): void {
@@ -94,25 +107,12 @@ class OutPort<T> extends PortBase<T> implements Publisher<T> {
     this.demand += sharedDemand;
 
     while (sharedDemand > 0 && this.queueSize() > 0) {
-      this._sendInternal(this.dequeque() as T);
+      this.send(this.dequequeData() as T);
       sharedDemand--;
     }
     if (sharedDemand > 0) {
       this.compSubscription.request(sharedDemand);
     }
-  }
-
-  private _startDrainSimple(err?: Error): void {
-    this._startDrain(
-      () => {
-        this.subscribers.forEach(s =>
-          this.scheduleMessage(() => err ? s.ref.onError(err) : s.ref.onComplete())
-        );
-        // TODO: check if this line is needed
-        this.subscribers = [];
-      },
-      () => this.compSubscription.cancel()
-    );
   }
 }
 
