@@ -171,7 +171,7 @@ export class Buffer<T> extends BaseComponent<[T, number], [T]> {
 
 export class Zip<T, U> extends PureComponent<[T, U], [T, U]> {
   static spec = { ins: ["in1", "in2"], outs: ["out"] };
-  process = (a1: T, a2: U): [T, U] => [a1, a2];
+  gen = (a1: T, a2: U): [T, U] => [a1, a2];
 }
 
 export class Take<T> extends BaseComponent<[T, number], [T]> {

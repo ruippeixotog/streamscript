@@ -13,7 +13,7 @@ abstract class PromiseComponent<Ins extends unknown[], Out> extends BaseComponen
     this.inErrors = this.spec.ins.map(() => undefined);
   }
 
-  abstract processAsync(): Promise<IteratorResult<Out>>;
+  abstract genAsync(): Promise<IteratorResult<Out>>;
 
   pullAsync(idx: number): Promise<IteratorResult<Ins[number]>> {
     const deferred = new Deferred<IteratorResult<Ins[number]>>();
@@ -48,7 +48,7 @@ abstract class PromiseComponent<Ins extends unknown[], Out> extends BaseComponen
     const outPort = this.outPort(0);
     for (let i = 0; i < n; i++) {
       this.jobScheduler.addAsync(() =>
-        this.processAsync()
+        this.genAsync()
           .then(v => v.done ? outPort.complete() : outPort.send(v.value))
           .catch(err => outPort.error(err))
       );

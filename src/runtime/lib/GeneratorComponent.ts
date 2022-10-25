@@ -21,7 +21,7 @@ abstract class GeneratorComponent<Ins extends unknown[], Out> extends PromiseCom
 
   abstract processGenerator(...inputs: AsyncGenerator<Ins[number]>[]): AsyncGenerator<Out>;
 
-  processAsync(): Promise<IteratorResult<Out>> {
+  genAsync(): Promise<IteratorResult<Out>> {
     return this.generator.next();
   }
 

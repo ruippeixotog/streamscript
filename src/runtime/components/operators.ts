@@ -4,13 +4,13 @@ import { ComponentClass } from "../component_loader";
 const UnOp = <A, T>(f: (a1: A) => T): ComponentClass =>
   class extends PureComponent<[A], T> {
     static spec = { ins: ["in"], outs: ["out"] };
-    process = f;
+    gen = f;
   };
 
 const BinOp = <A1, A2, T>(f: (a1: A1, a2: A2) => T): ComponentClass =>
   class extends PureComponent<[A1, A2], T> {
     static spec = { ins: ["in1", "in2"], outs: ["out"] };
-    process = f;
+    gen = f;
   };
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -37,7 +37,7 @@ type AnyObject = Record<string, unknown>;
 
 export class SetPropertyValue extends PureComponent<[string, unknown, AnyObject], AnyObject> {
   static spec = { ins: ["key", "value", "obj"], outs: ["out"] };
-  process = (k: string, v: unknown, obj: AnyObject): AnyObject => ({ ...obj, [k]: v });
+  gen = (k: string, v: unknown, obj: AnyObject): AnyObject => ({ ...obj, [k]: v });
 }
 
 export const Index = BinOp((coll: any, index: any) => coll[index]);
