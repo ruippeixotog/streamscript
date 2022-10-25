@@ -5,6 +5,7 @@ import Deferred from "../src/util/Deferred";
 import { deepLsSync, openReadStream } from "./fs_util";
 
 describe("runtime", function () {
+  this.timeout(10000);
 
   async function execSS(file: string, ssInFile: string): Promise<string> {
     const ssInStream = await openReadStream(ssInFile);
