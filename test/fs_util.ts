@@ -1,8 +1,4 @@
-import util from "util";
 import fs from "fs";
-
-const fsReaddir = util.promisify(fs.readdir);
-const fsStat = util.promisify(fs.stat);
 
 export const deepLsSync = (dir: string): string[] =>
   fs.readdirSync(dir)
@@ -10,9 +6,9 @@ export const deepLsSync = (dir: string): string[] =>
     .flatMap(f => fs.statSync(f).isDirectory() ? deepLsSync(f) : [f]);
 
 export const forEach = async (dir: string, f: (file: string, stat: fs.Stats) => Promise<void>): Promise<void> => {
-  const files = await fsReaddir(dir);
+  const files = await fs.promises.readdir(dir);
   await Promise.all(
-    files.map(async file => await f(dir + "/" + file, await fsStat(dir + "/" + file)))
+    files.map(async file => await f(dir + "/" + file, await fs.promises.stat(dir + "/" + file)))
   );
 };
 

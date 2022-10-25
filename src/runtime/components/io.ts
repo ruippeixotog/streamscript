@@ -34,13 +34,28 @@ export class Input<_T> extends GeneratorComponent<[], string> {
   private rt: readline.Interface;
 
   async* processGenerator(): AsyncGenerator<string> {
+    console.log("start!");
     for await (const line of this.rt) {
+      console.log("line");
       yield line;
     }
+    console.log("end");
   }
 
   start(): void {
-    this.rt = readline.createInterface(process.stdin);
+    process.stdin.pause();
+    process.stdin
+      .on("data", data => {
+        buff += data;
+        lines = buff.split(/\r\n|\n/);
+        buff = lines.pop();
+        lines.forEach(line => stdin.emit("line", line));
+      })
+      .on("end", () => {
+        if (buff.length > 0) stdin.emit("line", buff);
+      });
+
+    // this.rt = readline.createInterface({ input: process.stdin, terminal: false });
     super.start();
   }
 

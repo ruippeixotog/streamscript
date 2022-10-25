@@ -38,7 +38,7 @@
     "start": "babel-node --extensions '.js,.ts' src/main.ts",
     "lint": "eslint --ext '.js,.ts' src test",
     "tsc": "tsc",
-    "test": "mocha -r ts-node/register test/**/*.ts",
+    "test": "mocha -r ts-node/register test/**/*.ts --async-stack-traces --full-trace",
     "testOnly": "mocha -r ts-node/register",
     "validate": "set -x; npm run lint && npm test"
   }
