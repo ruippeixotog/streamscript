@@ -1,7 +1,6 @@
 import assert from "assert";
 import { spawn } from "child_process";
-import fs from "fs";
-import util from "util";
+import fs, { ReadStream } from "fs";
 import Deferred from "../src/util/Deferred";
 import { deepLsSync } from "./fs_util";
 
@@ -10,19 +9,20 @@ describe("runtime", function () {
   async function execSS(file: string): Promise<string> {
     let ssOut = "";
     let ssErr = "";
-    const ssDone = new Deferred<number | null>();
 
     const proc = spawn("babel-node", ["--extensions", ".js,.ts", "src/main.ts", file]);
     proc.stdout.setEncoding("utf8");
     proc.stdout.on("data", data => ssOut += data.toString());
     proc.stderr.on("data", data => ssErr += data.toString());
-    proc.on("close", code => ssDone.resolve(code));
 
+    const ssDone = new Deferred<number | null>();
+    proc.on("close", code => ssDone.resolve(code));
     const code = await ssDone.promise;
-    assert(code === 0, `${file} existed with code ${code}. stderr:\n${ssErr}`);
+
+    assert(code === 0, `${file} existed with code ${code}.\nstderr:\n${ssErr}`);
     assert(
       ssErr.trim().endsWith("Finished."),
-      `${file} exited successfully but the graph didn't terminate cleanly. stderr:\n${ssErr}`
+      `${file} exited successfully but the graph didn't terminate cleanly.\nstdout:\n${ssOut}\nstderr:\n${ssErr}`
     );
     return ssOut;
   }
@@ -35,8 +35,7 @@ describe("runtime", function () {
       it(file, async function () {
         const ssOut = await execSS(file);
         const ssExpectedFile = file.replace(".ss", ".expected");
-        const ssExpected = await util.promisify(fs.readFile)(ssExpectedFile, "utf-8");
-
+        const ssExpected = await fs.promises.readFile(ssExpectedFile, "utf-8");
         // fs.writeFileSync(ssExpectedFile, ssOut, "utf-8");
         assert.equal(ssOut, ssExpected);
       });
