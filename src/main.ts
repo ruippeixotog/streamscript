@@ -10,7 +10,8 @@ import Logger from "./runtime/Logger";
 
 type Argv = {
   file: string,
-  dot: boolean | undefined
+  dot: boolean,
+  verbose: boolean
 }
 
 async function parseArgs(): Promise<Argv> {
@@ -23,7 +24,14 @@ async function parseArgs(): Promise<Argv> {
     })
     .option("dot", {
       type: "boolean",
-      describe: "Write dot and png files to the output folder"
+      describe: "Write dot and png files to the output folder",
+      default: false
+    })
+    .option("verbose", {
+      alias: "v",
+      type: "boolean",
+      describe: "Print compiler and runner progress messages",
+      default: false
     })
     .demandOption("file")
     .help()
@@ -35,10 +43,14 @@ async function parseArgs(): Promise<Argv> {
 }
 
 async function main(argv: Argv): Promise<void> {
-  console.error(`parsing ${argv.file}...`);
+  if (argv.verbose) {
+    console.error(`parsing ${argv.file}...`);
+  }
   const ast = parser.parseFile(argv.file);
 
-  console.error(`compiling ${argv.file}...`);
+  if (argv.verbose) {
+    console.error(`compiling ${argv.file}...`);
+  }
   const componentStore = await loader.loadComponents();
   const graph = compiler.compileGraph(ast, componentStore, importRootDir);
 
@@ -50,7 +62,9 @@ async function main(argv: Argv): Promise<void> {
     printer.toPNG(graph, "out/graph_full.png", true);
   }
 
-  console.error(`running ${argv.file}...`);
+  if (argv.verbose) {
+    console.error(`running ${argv.file}...`);
+  }
   const logger = new Logger("out/packets.log");
   await runner.runGraph(graph, componentStore, logger).whenTerminated();
 }
