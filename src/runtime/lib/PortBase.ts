@@ -5,11 +5,15 @@ type PortState = "active" | "terminated";
 
 abstract class PortBase<T, Msg> {
   private state: PortState = "active";
-  private inbox: Mailbox<Msg> = new Mailbox(this.handleMessage.bind(this));
+  private inbox: Mailbox<Msg> = new Mailbox(this.handleMessageInternal.bind(this));
   private dataQueue: T[] = [];
   private whenTerminatedHandler: Deferred<void> = new Deferred();
 
   abstract handleMessage(msg: Msg): Promise<void>;
+
+  private handleMessageInternal(msg: Msg): Promise<void> {
+    return this.isTerminated() ? Promise.resolve() : this.handleMessage(msg);
+  }
 
   protected queueSize(): number {
     return this.dataQueue.length;

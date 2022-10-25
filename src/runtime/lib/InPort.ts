@@ -49,9 +49,6 @@ class InPort<T> extends PortBase<T, Msg<T>> implements Subscription {
   async handleMessage(msg: Msg<T>): Promise<void> {
     switch (msg.type) {
       case "next":
-        if (this.isTerminated()) {
-          return;
-        }
         this.subscriptions
           .filter(s => s.ref === msg.sub)
           .forEach(s => {
@@ -71,9 +68,6 @@ class InPort<T> extends PortBase<T, Msg<T>> implements Subscription {
         break;
 
       case "complete":
-        if (this.isTerminated()) {
-          return;
-        }
         this.subscriptions =
           this.subscriptions.filter(s => s.ref !== msg.sub);
 
@@ -84,9 +78,6 @@ class InPort<T> extends PortBase<T, Msg<T>> implements Subscription {
         break;
 
       case "error":
-        if (this.isTerminated()) {
-          return;
-        }
         this.subscriptions = [];
         this.terminate();
         this.compSubscriber.onError(msg.err);
