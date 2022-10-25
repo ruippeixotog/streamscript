@@ -6,11 +6,12 @@ import parser from "./parser";
 import { importRootDir, loader, runner } from "./runtime";
 import compiler from "./compiler";
 import printer from "./graph_printer";
-import Logger from "./runtime/Logger";
+import FilePacketListener from "./runtime/listener/FilePacketListener";
 
 type Argv = {
   file: string,
   dot: boolean,
+  packets: boolean,
   verbose: boolean
 }
 
@@ -25,6 +26,11 @@ async function parseArgs(): Promise<Argv> {
     .option("dot", {
       type: "boolean",
       describe: "Write dot and png files to the output folder",
+      default: false
+    })
+    .option("packets", {
+      type: "boolean",
+      describe: "Listens to all graph activity and logs it to packets.log",
       default: false
     })
     .option("verbose", {
@@ -65,8 +71,8 @@ async function main(argv: Argv): Promise<void> {
   if (argv.verbose) {
     console.error(`running ${argv.file}...`);
   }
-  const logger = new Logger("out/packets.log");
-  await runner.runGraph(graph, componentStore, logger).whenTerminated();
+  const listener = argv.packets ? new FilePacketListener("out/packets.log") : undefined;
+  await runner.runGraph(graph, componentStore, listener).whenTerminated();
 }
 
 parseArgs()

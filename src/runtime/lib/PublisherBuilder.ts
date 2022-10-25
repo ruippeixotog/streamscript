@@ -1,4 +1,4 @@
-import { Publisher, Subscriber } from "../types";
+import { Publisher, Subscriber, Subscription } from "../types";
 
 export class Single<T> implements Publisher<T> {
   private singleValue: T;
@@ -44,26 +44,24 @@ class Map<T, U> implements Publisher<U> {
 
 class Tap<T> implements Publisher<T> {
   private inner: Publisher<T>;
-  private sub: Subscriber<T>;
-  private onRequest: (n: number) => void;
-  private onCancel: () => void;
+  private subscriber: Subscriber<T>;
+  private subscription?: Subscription;
 
-  constructor(inner: Publisher<T>, sub: Subscriber<T>, onRequest?: (n: number) => void, onCancel?: () => void) {
+  constructor(inner: Publisher<T>, subscriber: Subscriber<T>, subscription?: Subscription) {
     this.inner = inner;
-    this.sub = sub;
-    this.onRequest = onRequest || (() => {});
-    this.onCancel = onCancel || (() => {});
+    this.subscriber = subscriber;
+    this.subscription = subscription;
   }
 
   subscribe(s: Subscriber<T>): void {
     this.inner.subscribe({
       onSubscribe: s0 => s.onSubscribe({
-        request: n => { this.onRequest(n); s0.request(n); },
-        cancel: () => { this.onCancel(); s0.cancel(); }
+        request: n => { this.subscription?.request(n); s0.request(n); },
+        cancel: () => { this.subscription?.cancel(); s0.cancel(); }
       }),
-      onNext: t => { this.sub.onNext(t); s.onNext(t); },
-      onError: err => { this.sub.onError(err); s.onError(err); },
-      onComplete: () => { this.sub.onComplete(); s.onComplete(); }
+      onNext: t => { this.subscriber.onNext(t); s.onNext(t); },
+      onError: err => { this.subscriber.onError(err); s.onError(err); },
+      onComplete: () => { this.subscriber.onComplete(); s.onComplete(); }
     });
   }
 }
@@ -96,8 +94,8 @@ class Builder<T> {
     return new Builder(new Map(this.publisher, f));
   }
 
-  tap(sub: Subscriber<T>, onRequest?: (n: number) => void, onCancel?: () => void): Builder<T> {
-    return new Builder(new Tap(this.publisher, sub, onRequest, onCancel));
+  tap(sub: Subscriber<T>, subscription?: Subscription): Builder<T> {
+    return new Builder(new Tap(this.publisher, sub, subscription));
   }
 
   async(): Builder<T> {

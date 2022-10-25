@@ -3,12 +3,12 @@ import { ComponentStore } from "../types";
 import { Component, Publisher, Subscriber } from "./types";
 import { ComponentClass } from "./component_loader";
 import Builder from "./lib/PublisherBuilder";
-import Logger from "./Logger";
+import PacketListener from "./listener/PacketListener";
 
 function toComponent(
   graph: Graph,
   componentStore: ComponentStore<ComponentClass>,
-  logger: Logger,
+  listener?: PacketListener,
   graphName?: string
 ): Component<unknown[], unknown[]> {
   const nodeComponents: { [nodeId: string]: Component<unknown[], unknown[]> } = {};
@@ -17,26 +17,30 @@ function toComponent(
     nodeComponents[nodeId] =
       "componentId" in nodeImpl ?
         new componentStore.components[nodeImpl.componentId].impl() :
-        toComponent(graph.getSubgraph(nodeImpl.subgraphId), componentStore, logger, nodeId);
+        toComponent(graph.getSubgraph(nodeImpl.subgraphId), componentStore, listener, nodeId);
 
-    nodeComponents[nodeId].whenTerminated()
-      .then(logger.nodeSubscriber(nodeId, graphName));
+    if (listener) {
+      nodeComponents[nodeId].whenTerminated()
+        .then(listener.nodeListenerFor(nodeId, graphName).onTerminate);
+    }
   });
 
   graph.edges.forEach(({ from, to }) => {
     const fromComp = nodeComponents[from.nodeId];
     const toComp = nodeComponents[to.nodeId];
-    Builder
-      .from(fromComp.publisherFor(fromComp.spec.outs.indexOf(from.portName)))
-      .tap(...logger.edgeSubscriber(from, to, graphName))
-      .to(toComp.subscriberFor(toComp.spec.ins.indexOf(to.portName)));
+
+    let builder = Builder.from(fromComp.publisherFor(fromComp.spec.outs.indexOf(from.portName)));
+    if (listener) {
+      const edgeListener = listener.edgeListenerFor(from, to, graphName);
+      builder = builder.tap(edgeListener.downstream, edgeListener.upstream);
+    }
+    builder.to(toComp.subscriberFor(toComp.spec.ins.indexOf(to.portName)));
   });
 
   graph.initials.forEach((value, port) => {
     const toComp = nodeComponents[port.nodeId];
     Builder
       .fromSingle(value).async()
-      .tap(...logger.edgeInitialSubscriber(value, port, graphName))
       .to(toComp.subscriberFor(toComp.spec.ins.indexOf(port.portName)));
   });
 
@@ -84,9 +88,9 @@ function toComponent(
 function runGraph(
   graph: Graph,
   componentStore: ComponentStore<ComponentClass>,
-  logger: Logger
+  listener?: PacketListener
 ): Component<unknown[], unknown[]> {
-  const comp = toComponent(graph, componentStore, logger);
+  const comp = toComponent(graph, componentStore, listener);
   comp.start();
   return comp;
 }
