@@ -1,0 +1,9 @@
+Config change: a = 1, b = 4
+Config change: a = 42, b = 4
+Config change: a = 35, b = 4
+Config change: a = 35, b = 3.2
+Config change: a = 4, b = 3.2
+Config change: a = 100, b = 3.2
+Config change: a = 100, b = -4
+Config change: a = 100, b = 4.5
+Config change: a = 100, b = 0

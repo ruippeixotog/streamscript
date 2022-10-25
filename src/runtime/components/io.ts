@@ -28,24 +28,20 @@ export class Output<T> extends BaseComponent<[T], []> {
   }
 }
 
-export class Input<_T> extends GeneratorComponent<[], string> {
+export class Input extends GeneratorComponent<[], string> {
   static spec = { ins: [], outs: ["out"] };
 
   private rt: readline.Interface;
 
   async* processGenerator(): AsyncGenerator<string> {
+    this.rt = readline.createInterface(process.stdin);
     for await (const line of this.rt) {
       yield line;
     }
   }
 
-  start(): void {
-    this.rt = readline.createInterface(process.stdin);
-    super.start();
-  }
-
   terminate(err?: Error): void {
-    this.rt.close();
+    this.rt?.close();
     super.terminate(err);
   }
 }

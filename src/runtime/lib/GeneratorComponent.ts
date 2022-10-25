@@ -1,7 +1,7 @@
 import PromiseComponent from "./PromiseComponent";
 
 abstract class GeneratorComponent<Ins extends unknown[], Out> extends PromiseComponent<Ins, Out> {
-  generator: AsyncGenerator<Out>;
+  private generator: AsyncGenerator<Out>;
 
   constructor() {
     super();

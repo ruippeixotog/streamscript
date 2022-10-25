@@ -1,17 +1,22 @@
 import assert from "assert";
 import { spawn } from "child_process";
-import fs, { ReadStream } from "fs";
+import fs from "fs";
 import Deferred from "../src/util/Deferred";
-import { deepLsSync } from "./fs_util";
+import { deepLsSync, openReadStream } from "./fs_util";
 
 describe("runtime", function () {
 
-  async function execSS(file: string): Promise<string> {
+  async function execSS(file: string, ssInFile: string): Promise<string> {
+    const ssInStream = await openReadStream(ssInFile);
+
+    const proc = spawn(
+      "babel-node",
+      ["--extensions", ".js,.ts", "src/main.ts", file],
+      { stdio: [ssInStream || "ignore", "pipe", "pipe"] }
+    );
+
     let ssOut = "";
     let ssErr = "";
-
-    const proc = spawn("babel-node", ["--extensions", ".js,.ts", "src/main.ts", file]);
-    proc.stdout.setEncoding("utf8");
     proc.stdout.on("data", data => ssOut += data.toString());
     proc.stderr.on("data", data => ssErr += data.toString());
 
@@ -19,10 +24,14 @@ describe("runtime", function () {
     proc.on("close", code => ssDone.resolve(code));
     const code = await ssDone.promise;
 
-    assert(code === 0, `${file} existed with code ${code}.\nstderr:\n${ssErr}`);
-    assert(
+    function assertProc(value: unknown, msg: string): asserts value {
+      assert(value, `${msg}.\n\nstdout:\n${ssOut}\n\nstderr:\n${ssErr}`);
+    }
+
+    assertProc(code === 0, `${file} exited with code ${code}`);
+    assertProc(
       ssErr.trim().endsWith("Finished."),
-      `${file} exited successfully but the graph didn't terminate cleanly.\nstdout:\n${ssOut}\nstderr:\n${ssErr}`
+      `${file} exited successfully but the graph didn't terminate cleanly`
     );
     return ssOut;
   }
@@ -33,11 +42,13 @@ describe("runtime", function () {
         return;
       }
       it(file, async function () {
-        const ssOut = await execSS(file);
+        const ssInFile = file.replace(".ss", ".in");
+        const ssOut = await execSS(file, ssInFile);
+
         const ssExpectedFile = file.replace(".ss", ".expected");
         const ssExpected = await fs.promises.readFile(ssExpectedFile, "utf-8");
-        // fs.writeFileSync(ssExpectedFile, ssOut, "utf-8");
         assert.equal(ssOut, ssExpected);
+        // fs.writeFileSync(ssExpectedFile, ssOut, "utf-8");
       });
     });
   }

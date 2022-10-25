@@ -1,4 +1,5 @@
-import fs from "fs";
+import fs, { ReadStream } from "fs";
+import Deferred from "../src/util/Deferred";
 
 export const deepLsSync = (dir: string): string[] =>
   fs.readdirSync(dir)
@@ -19,3 +20,17 @@ export const walk = (dir: string, f: (file: string) => Promise<void>): Promise<v
 
 export const deepWalk = async (dir: string, f: (file: string) => Promise<void>): Promise<void> =>
   forEach(dir, (file, stat) => stat.isDirectory() ? walk(file, f) : f(file));
+
+export async function openReadStream(file: string): Promise<ReadStream | null> {
+  try {
+    await fs.promises.access(file, fs.constants.R_OK);
+  } catch (_err) {
+    return null;
+  }
+  const stream = fs.createReadStream(file, "utf-8");
+  const streamOpened = new Deferred();
+  stream.on("open", () => streamOpened.resolve(null));
+  await streamOpened.promise;
+
+  return stream;
+}
