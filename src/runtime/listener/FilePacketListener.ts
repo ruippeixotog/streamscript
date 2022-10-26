@@ -20,18 +20,20 @@ class FilePacketListener implements PacketListener {
   }
 
   edgeListenerFor(from: OutPortRef, to: InPortRef, graphName?: string | undefined): EdgeListener {
-    const prefix = `EDGE ${graphName ? `<<${graphName}>> ` : ""}${from} -> ${to}: `;
-    const revPrefix = `EDGE ${graphName ? `<<${graphName}>> ` : ""}${to} -> ${from}: `;
+    const fromName = `${from.nodeId}[${from.portName}]`;
+    const toName = `${to.nodeId}[${to.portName}]`;
+    const prefix = `EDGE ${graphName ? `<<${graphName}>> ` : ""}${fromName} -> ${toName}:`;
+    const revPrefix = `EDGE ${graphName ? `<<${graphName}>> ` : ""}${toName} -> ${fromName}:`;
 
     const downstream: Subscriber<unknown> = {
       onSubscribe: () => {},
-      onNext: ev => this.out.write(prefix + `DATA ${JSON.stringify(ev)}\n`),
-      onError: err => this.out.write(prefix + `ERROR ${err}\n`),
-      onComplete: () => this.out.write(prefix + "COMPLETE\n")
+      onNext: ev => this.out.write(`${prefix} DATA ${JSON.stringify(ev)}\n`),
+      onError: err => this.out.write(`${prefix} ERROR ${err}\n`),
+      onComplete: () => this.out.write(`${prefix} COMPLETE\n`)
     };
     const upstream: Subscription = {
-      request: n => { this.out.write(revPrefix + `REQUEST ${n}\n`); },
-      cancel: () => { this.out.write(revPrefix + "CANCEL\n"); }
+      request: n => { this.out.write(`${revPrefix} REQUEST ${n}\n`); },
+      cancel: () => { this.out.write(`${revPrefix} CANCEL\n`); }
     };
     return { downstream, upstream };
   }
