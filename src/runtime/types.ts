@@ -104,5 +104,7 @@ export interface Component<Ins extends unknown[], Outs extends unknown[]> {
 
    start(): void;
    terminate(): void;
+
+   isTerminated(): boolean,
    whenTerminated(): Promise<unknown>;
 }

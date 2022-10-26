@@ -85,7 +85,7 @@ class InPort<T> extends PortBase<T, Msg<T>> implements Subscription {
   }
 
   request(n: number): void {
-    while (n > 0 && this.queueSize() > 0) {
+    while (n > 0 && this.dataQueueSize() > 0) {
       this.compSubscriber.onNext(this.dequequeData() as T);
       n--;
     }

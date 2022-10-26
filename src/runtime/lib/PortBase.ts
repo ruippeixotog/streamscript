@@ -15,7 +15,7 @@ abstract class PortBase<T, Msg> {
     return this.isTerminated() ? Promise.resolve() : this.handleMessage(msg);
   }
 
-  protected queueSize(): number {
+  protected dataQueueSize(): number {
     return this.dataQueue.length;
   }
 

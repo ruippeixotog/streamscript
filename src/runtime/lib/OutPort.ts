@@ -106,7 +106,7 @@ class OutPort<T> extends PortBase<T, Msg<T>> implements Publisher<T> {
     this.subscribers.forEach(s => s.demand -= sharedDemand);
     this.demand += sharedDemand;
 
-    while (sharedDemand > 0 && this.queueSize() > 0) {
+    while (sharedDemand > 0 && this.dataQueueSize() > 0) {
       this.send(this.dequequeData() as T);
       sharedDemand--;
     }

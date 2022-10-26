@@ -44,9 +44,9 @@ function toComponent(
       .to(toComp.subscriberFor(toComp.spec.ins.indexOf(port.portName)));
   });
 
-  // function printStatus() {
+  // function printStatus(): void {
   //   console.log(graphName);
-  //   console.log(Object.entries(nodeComponents).map(([key, comp]) => [key, comp.whenTerminated()]));
+  //   console.log(Object.entries(nodeComponents).map(([key, comp]) => [key, comp.isTerminated()]));
   //   setTimeout(printStatus, 1000);
   // }
   // setTimeout(printStatus, 1000);
@@ -75,6 +75,10 @@ function toComponent(
 
     terminate(): void {
       Object.entries(nodeComponents).forEach(([_, comp]) => comp.terminate());
+    },
+
+    isTerminated(): boolean {
+      return Object.entries(nodeComponents).every(([_, comp]) => comp.isTerminated());
     },
 
     whenTerminated(): Promise<unknown> {

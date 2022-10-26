@@ -72,6 +72,10 @@ abstract class BaseComponent<Ins extends unknown[], Outs extends unknown[]> impl
     });
   }
 
+  isTerminated(): boolean {
+    return this.whenTerminatedHandler.isResolved();
+  }
+
   whenTerminated(): Promise<unknown> {
     return this.whenTerminatedHandler.promise;
   }
