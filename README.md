@@ -18,7 +18,7 @@ Contrary to flow-based programming, streams in StreamScript are pull-based: a pr
 
 ## Language
 
-For example programs, take a look at [ssexamples](https://github.com/ruippeixotog/streamscript/tree/master/ssexamples). If you're feeling brave you can also read the [PEG grammar](https://github.com/ruippeixotog/streamscript/blob/master/src/grammar.ohm).
+For example programs, take a look at [test/runtime/_sstests](https://github.com/ruippeixotog/streamscript/tree/master/test/runtime/_sstests). If you're feeling brave you can also read the [PEG grammar](https://github.com/ruippeixotog/streamscript/blob/master/src/parser/grammar.ohm).
 
 ### Element Types
 
