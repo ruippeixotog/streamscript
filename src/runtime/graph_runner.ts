@@ -16,7 +16,7 @@ function toComponent(
   graph.nodes.forEach((nodeImpl, nodeId) => {
     nodeComponents[nodeId] =
       "componentId" in nodeImpl ?
-        new componentStore.components[nodeImpl.componentId].impl() :
+        new componentStore.components[nodeImpl.componentId].impl(nodeId) :
         toComponent(graph.getSubgraph(nodeImpl.subgraphId), componentStore, listener, nodeId);
 
     if (listener) {

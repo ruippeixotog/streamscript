@@ -3,8 +3,8 @@ import PromiseComponent from "./PromiseComponent";
 abstract class GeneratorComponent<Ins extends unknown[], Out> extends PromiseComponent<Ins, Out> {
   private generator: AsyncGenerator<Out>;
 
-  constructor() {
-    super();
+  constructor(name: string) {
+    super(name);
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const self = this;
     const inGenerators = this.spec.ins.map((name, i) =>

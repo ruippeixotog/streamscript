@@ -24,8 +24,8 @@ abstract class BaseComponent<Ins extends unknown[], Outs extends unknown[]> impl
     return Promise.resolve();
   }
 
-  constructor() {
-    this.inPorts = this.spec.ins.map((name, i) => new InPort(`${this.constructor.name}[${name}]`, {
+  constructor(name: string) {
+    this.inPorts = this.spec.ins.map((port, i) => new InPort(`${name}[${port}]`, {
       onSubscribe: _ => {},
       onNext: value => this.onNext(i, value),
       onError: err => {
@@ -40,7 +40,7 @@ abstract class BaseComponent<Ins extends unknown[], Outs extends unknown[]> impl
       }
     }));
 
-    this.outPorts = this.spec.outs.map((name, i) => new OutPort(`${this.constructor.name}[${name}]`, {
+    this.outPorts = this.spec.outs.map((port, i) => new OutPort(`${name}[${port}]`, {
       request: n => this.onRequest(i, n),
       cancel: () => {
         if (this.shouldTerminate()) {

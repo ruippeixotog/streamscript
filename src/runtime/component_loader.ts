@@ -34,7 +34,7 @@ const index = "operators/Index";
 
 export interface ComponentClass {
   readonly spec: ComponentSpec;
-  new(): Component<unknown[], unknown[]>;
+  new(name: string): Component<unknown[], unknown[]>;
 }
 
 function getComponentSpec(name: string, c: ComponentClass): ComponentDef<ComponentClass> {

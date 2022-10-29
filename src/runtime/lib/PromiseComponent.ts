@@ -7,8 +7,8 @@ abstract class PromiseComponent<Ins extends unknown[], Out> extends BaseComponen
   private inErrors: (Error | undefined)[];
   private jobScheduler: AsyncJobStore = new AsyncJobStore();
 
-  constructor() {
-    super();
+  constructor(name: string) {
+    super(name);
     this.inPromises = this.spec.ins.map(() => []);
     this.inErrors = this.spec.ins.map(() => undefined);
   }
