@@ -5,8 +5,9 @@ import { hideBin } from "yargs/helpers";
 import parser from "./parser";
 import { importRootDir, loader, runner } from "./runtime";
 import compiler from "./compiler";
-import printer from "./graph_printer";
 import FilePacketListener from "./runtime/listener/FilePacketListener";
+import dot from "./viz/dot";
+import spawn from "./util/spawn";
 
 type Argv = {
   file: string,
@@ -62,10 +63,10 @@ async function main(argv: Argv): Promise<void> {
 
   fs.mkdirSync("out", { recursive: true });
   if (argv.dot) {
-    fs.writeFileSync("out/graph.dot", printer.toDOT(graph));
-    fs.writeFileSync("out/graph_full.dot", printer.toDOT(graph, true));
-    printer.toPNG(graph, "out/graph.png");
-    printer.toPNG(graph, "out/graph_full.png", true);
+    fs.writeFileSync("out/graph.dot", dot.toDOT(graph));
+    fs.writeFileSync("out/graph_full.dot", dot.toDOT(graph, true));
+    await spawn("dot", ["-Tpng", "out/graph.dot", "-o", "out/graph.png"]);
+    await spawn("dot", ["-Tpng", "out/graph_full.dot", "-o", "out/graph_full.png"]);
   }
 
   if (argv.verbose) {

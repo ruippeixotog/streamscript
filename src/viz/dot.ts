@@ -1,26 +1,11 @@
-import Graph, { InPortRef, OutPortRef } from "./compiler/graph";
+import Graph, { InPortRef, OutPortRef } from "../compiler/graph";
 import graphviz from "graphviz";
-import DeepMap from "./util/DeepMap";
+import DeepMap from "../util/DeepMap";
 
-export function print(graph: Graph): void {
-  console.log("Nodes:");
-  graph.nodes.forEach((v, k) => console.log(k, "->", v));
-  console.log("Edges:");
-  graph.edges.forEach(v => console.log(v));
-  console.log("Initials:");
-  graph.initials.forEach((v, k) => console.log(k, "<-", v));
-  console.log("Subgraphs:");
-  graph.subgraphs.forEach((v, k) => console.log(k));
-  console.log("External inputs:");
-  graph.externalIns.forEach(v => console.log(v));
-  console.log("External outputs:");
-  graph.externalOuts.forEach(v => console.log(v));
-}
-
-function buildGraphvizGraph(
+function buildVizGraph(
   graph: Graph,
   vizGraph: graphviz.Graph,
-  includeSubgraphs: boolean,
+  includeSubgraphs: boolean | string[],
   graphName?: string): graphviz.Graph {
 
   const sanitize = (nodeId: string): string => nodeId.replace(/"/g, '\\"');
@@ -44,6 +29,9 @@ function buildGraphvizGraph(
       `!${label}<br/><font color="darkgray" point-size="10px">${sublabel}</font>` :
       sanitize(label);
 
+  const shouldRender = (subgraphId: string): boolean =>
+    typeof includeSubgraphs === "object" ? includeSubgraphs.includes(subgraphId) : includeSubgraphs;
+
   if (graphName) {
     vizGraph.set("label", graphName);
     vizGraph.set("style", "dotted");
@@ -51,11 +39,11 @@ function buildGraphvizGraph(
   }
 
   graph.nodes.forEach((nodeImpl, nodeId) => {
-    if (includeSubgraphs && "subgraphId" in nodeImpl) {
+    if ("subgraphId" in nodeImpl && shouldRender(nodeImpl.subgraphId)) {
       const subgraph = graph.getSubgraph(nodeImpl.subgraphId);
       const vizSubgraphId = `"cluster_${nodeId}"`;
 
-      buildGraphvizGraph(
+      buildVizGraph(
         subgraph,
         vizGraph.addCluster(vizSubgraphId),
         true,
@@ -108,16 +96,15 @@ function buildGraphvizGraph(
   return vizGraph;
 }
 
-function toGraphvizGraph(graph: Graph, includeSubgraphs: boolean): graphviz.Graph {
-  return buildGraphvizGraph(graph, graphviz.digraph("G"), includeSubgraphs);
+function toVizGraph(
+  graph: Graph,
+  includeSubgraphs: boolean | string[] = false
+): graphviz.Graph {
+  return buildVizGraph(graph, graphviz.digraph("G"), includeSubgraphs);
 }
 
-export function toDOT(graph: Graph, includeSubgraphs = false): string {
-  return toGraphvizGraph(graph, includeSubgraphs).to_dot();
+function toDOT(graph: Graph, includeSubgraphs: boolean | string[] = false): string {
+  return toVizGraph(graph, includeSubgraphs).to_dot();
 }
 
-export function toPNG(graph: Graph, filename: string, includeSubgraphs = false): void {
-  toGraphvizGraph(graph, includeSubgraphs).output("png", filename);
-}
-
-export default { print, toDOT, toPNG };
+export default { toVizGraph, toDOT };
