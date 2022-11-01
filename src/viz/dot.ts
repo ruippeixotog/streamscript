@@ -29,8 +29,8 @@ function buildVizGraph(
       `!${label}<br/><font color="darkgray" point-size="10px">${sublabel}</font>` :
       sanitize(label);
 
-  const shouldRender = (subgraphId: string): boolean =>
-    typeof includeSubgraphs === "object" ? includeSubgraphs.includes(subgraphId) : includeSubgraphs;
+  const shouldRender = (nodeId: string): boolean =>
+    typeof includeSubgraphs === "object" ? includeSubgraphs.includes(nodeId) : includeSubgraphs;
 
   if (graphName) {
     vizGraph.set("label", graphName);
@@ -39,9 +39,9 @@ function buildVizGraph(
   }
 
   graph.nodes.forEach((nodeImpl, nodeId) => {
-    if ("subgraphId" in nodeImpl && shouldRender(nodeImpl.subgraphId)) {
+    if ("subgraphId" in nodeImpl && shouldRender(nodeId)) {
       const subgraph = graph.getSubgraph(nodeImpl.subgraphId);
-      const vizSubgraphId = `"cluster_${nodeId}"`;
+      const vizSubgraphId = `cluster_${nodeId}`;
 
       buildVizGraph(
         subgraph,
