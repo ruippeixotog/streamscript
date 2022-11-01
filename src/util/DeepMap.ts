@@ -3,8 +3,8 @@ import stableStringify from "json-stable-stringify";
 class DeepMap<K, V> implements Map<K, V> {
   inner: Map<string, V>;
 
-  constructor() {
-    this.inner = new Map();
+  constructor(entries?: readonly (readonly [K, V])[] | null) {
+    this.inner = new Map(entries?.map(([k, v]) => [stableStringify(k), v]));
   }
 
   get size(): number {
