@@ -43,6 +43,15 @@ export type ExtOutPortRef = {
   implicit: boolean;
 };
 
+export type GraphJSON = {
+  nodes: [string, Node][],
+  edges: Edge[],
+  initials: [InPortRef, unknown][],
+  subgraphs: [string, GraphJSON][],
+  externalIns: ExtInPortRef[],
+  externalOuts: ExtOutPortRef[]
+};
+
 class Graph {
   nodes: DeepMap<string, Node> = new DeepMap();
   edges: Edge[] = [];
@@ -92,6 +101,28 @@ class Graph {
 
   addExternalOut(portName: string, innerPort: OutPortRef, implicit = false): void {
     this.externalOuts.push({ portName, innerPort, implicit });
+  }
+
+  static fromJSON(graphJSON: GraphJSON): Graph {
+    const graph = new Graph();
+    graph.nodes = new DeepMap(graphJSON.nodes);
+    graph.edges = graphJSON.edges;
+    graph.initials = new DeepMap(graphJSON.initials);
+    graph.subgraphs = new DeepMap(graphJSON.subgraphs.map(([k, v]) => [k, Graph.fromJSON(v)]));
+    graph.externalIns = graphJSON.externalIns;
+    graph.externalOuts = graphJSON.externalOuts;
+    return graph;
+  }
+
+  toJSON(): GraphJSON {
+    return {
+      nodes: [...this.nodes],
+      edges: this.edges,
+      initials: [...this.initials],
+      subgraphs: [...this.subgraphs].map(([k, v]) => [k, v.toJSON()]),
+      externalIns: this.externalIns,
+      externalOuts: this.externalOuts
+    };
   }
 }
 

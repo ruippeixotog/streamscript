@@ -1,5 +1,5 @@
 import Graph, { InPortRef, OutPortRef } from "../compiler/graph";
-import graphviz from "graphviz";
+import graphviz from "graphviz-builder";
 import DeepMap from "../util/DeepMap";
 
 function buildVizGraph(

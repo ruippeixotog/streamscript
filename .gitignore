@@ -1,4 +1,6 @@
 *.log
 npm-debug.log*
 node_modules
+
 out/
+dist/bundle.js
