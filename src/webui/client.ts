@@ -125,10 +125,27 @@ historySlider.oninput = () => {
 };
 
 function updateSliderAndEvent(): void {
+  function eventToText(ev: WSEvent): string {
+    const graphRepr = ev.graphName ? `<<${ev.graphName}>> ` : "";
+    switch (ev.type) {
+      case "node": {
+        return `${graphRepr} ${ev.node} ${ev.event.toUpperCase()}`;
+      }
+      case "edge": {
+        const eventRepr =
+          ev.event === "next" ? `DATA ${JSON.stringify(ev.value)}` :
+            ev.event === "request" ? `REQUEST ${ev.value}` :
+              ev.event.toUpperCase();
+
+        return `${graphRepr} ${edgeRepr.formatEdge(ev.from, ev.to)} ${eventRepr}`;
+      }
+    }
+  }
+
   historySlider.setAttribute("max", (history.length + 1).toString());
-  eventText.innerHTML = currentEventIdx === 0 ?
+  eventText.textContent = currentEventIdx === 0 ?
     "initial state" :
-    JSON.stringify(history[currentEventIdx - 1]);
+    eventToText(history[currentEventIdx - 1]);
 }
 
 // ------

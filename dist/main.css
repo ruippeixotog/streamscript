@@ -97,6 +97,7 @@ svg {
 }
 
 .edge.next polygon {
+  fill: green;
   stroke: green;
   stroke-width: 5;
 }
@@ -118,6 +119,7 @@ svg {
 }
 
 .edge.request polygon {
+  fill: blue;
   stroke: blue;
   stroke-width: 5;
 }
@@ -127,5 +129,6 @@ svg {
 }
 
 .edge.cancel polygon {
+  fill: red;
   stroke: red;
 }
