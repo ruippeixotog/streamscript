@@ -1,6 +1,7 @@
 import Graph, { InPortRef, OutPortRef } from "../compiler/graph";
 import graphviz from "graphviz-builder";
 import DeepMap from "../util/DeepMap";
+import edgeRepr from "./edge_repr";
 
 function buildVizGraph(
   graph: Graph,
@@ -63,22 +64,26 @@ function buildVizGraph(
       });
     } else {
       vizGraph.addNode(localIdFor(nodeId), {
+        id: nodeId,
         label: nodeLabel(nodeId, (nodeImpl as { componentId?: string }).componentId),
         shape: "box"
       });
     }
   });
+
   graph.edges.forEach(({ from, to }) => {
     const [fromId, fromPortName] = idForOutPort(from);
     const [toId, toPortName] = idForInPort(to);
 
     vizGraph.addEdge(fromId, toId, {
+      id: edgeRepr.formatEdge(from, to),
       taillabel: fromPortName,
       headlabel: toPortName,
       labelfontcolor: "blue",
       labelfontsize: 8.0
     });
   });
+
   let i = 0;
   graph.initials.forEach((data, port) => {
     const [toId, toPortName] = idForInPort(port);
@@ -87,6 +92,7 @@ function buildVizGraph(
       shape: "plaintext"
     });
     vizGraph.addEdge(n, toId, {
+      id: edgeRepr.formatInitialEdge(data, port),
       headlabel: toPortName,
       labelfontcolor: "blue",
       labelfontsize: 8.0
