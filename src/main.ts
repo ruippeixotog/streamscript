@@ -73,7 +73,7 @@ async function main(argv: Argv): Promise<void> {
   fs.mkdirSync("out", { recursive: true });
   if (argv.dot) {
     fs.writeFileSync("out/graph.dot", dot.toDOT(graph));
-    fs.writeFileSync("out/graph_full.dot", dot.toDOT(graph, true));
+    fs.writeFileSync("out/graph_full.dot", dot.toDOT(graph, { includeSubgraphs: true }));
     await spawn("dot", ["-Tpng", "out/graph.dot", "-o", "out/graph.png"]);
     await spawn("dot", ["-Tpng", "out/graph_full.dot", "-o", "out/graph_full.png"]);
   }

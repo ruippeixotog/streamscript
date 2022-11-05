@@ -92,13 +92,24 @@ svg {
 }
 
 .edge.next path {
-  stroke: lime;
+  stroke: green;
   stroke-width: 5;
 }
 
 .edge.next polygon {
-  stroke: lime;
+  stroke: green;
   stroke-width: 5;
+}
+
+.edge.next text:nth-child(4) {
+  font-size: 20px;
+  fill: white;
+  paint-order: stroke;
+  stroke: green;
+  stroke-width: 3px;
+  stroke-linecap: butt;
+  stroke-linejoin: miter;
+  font-weight: 800;
 }
 
 .edge.request path {

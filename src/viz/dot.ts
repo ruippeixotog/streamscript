@@ -3,11 +3,16 @@ import graphviz from "graphviz-builder";
 import DeepMap from "../util/DeepMap";
 import edgeRepr from "./edge_repr";
 
+export type DotOpts = {
+  includeSubgraphs?: boolean | string[],
+  renderEmptyEdgeLabels?: boolean
+};
+
 function buildVizGraph(
   graph: Graph,
   vizGraph: graphviz.Graph,
-  includeSubgraphs: boolean | string[],
-  graphName?: string): graphviz.Graph {
+  graphName?: string,
+  opts?: DotOpts): graphviz.Graph {
 
   const sanitize = (nodeId: string): string => nodeId.replace(/"/g, '\\"');
 
@@ -31,7 +36,9 @@ function buildVizGraph(
       sanitize(label);
 
   const shouldRender = (nodeId: string): boolean =>
-    typeof includeSubgraphs === "object" ? includeSubgraphs.includes(nodeId) : includeSubgraphs;
+    typeof opts?.includeSubgraphs === "object" ?
+      opts?.includeSubgraphs.includes(nodeId) :
+      opts?.includeSubgraphs || false;
 
   if (graphName) {
     vizGraph.set("label", graphName);
@@ -47,8 +54,8 @@ function buildVizGraph(
       buildVizGraph(
         subgraph,
         vizGraph.addCluster(vizSubgraphId),
-        true,
-        (graphName ? `${graphName}_` : "") + nodeId
+        (graphName ? `${graphName}_` : "") + nodeId,
+        opts
       );
       subgraph.externalIns.forEach(p => {
         inPortVizNames.set(
@@ -77,6 +84,7 @@ function buildVizGraph(
 
     vizGraph.addEdge(fromId, toId, {
       id: edgeRepr.formatEdge(from, to),
+      label: opts?.renderEmptyEdgeLabels ? " " : undefined,
       taillabel: fromPortName,
       headlabel: toPortName,
       labelfontcolor: "blue",
@@ -102,15 +110,12 @@ function buildVizGraph(
   return vizGraph;
 }
 
-function toVizGraph(
-  graph: Graph,
-  includeSubgraphs: boolean | string[] = false
-): graphviz.Graph {
-  return buildVizGraph(graph, graphviz.digraph("G"), includeSubgraphs);
+function toVizGraph(graph: Graph, opts?: DotOpts): graphviz.Graph {
+  return buildVizGraph(graph, graphviz.digraph("G"), undefined, opts);
 }
 
-function toDOT(graph: Graph, includeSubgraphs: boolean | string[] = false): string {
-  return toVizGraph(graph, includeSubgraphs).to_dot();
+function toDOT(graph: Graph, opts?: DotOpts): string {
+  return toVizGraph(graph, opts).to_dot();
 }
 
 export default { toVizGraph, toDOT };

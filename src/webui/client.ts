@@ -64,7 +64,10 @@ const d3Graph = graphviz("#main")
   .onerror(console.error);
 
 function updateGraph(): void {
-  const dotStr = dot.toDOT(graph, [...openedSubgraphs]);
+  const dotStr = dot.toDOT(graph, {
+    includeSubgraphs: [...openedSubgraphs],
+    renderEmptyEdgeLabels: true
+  });
   d3Graph.renderDot(dotStr);
 }
 
@@ -87,6 +90,13 @@ function drawEvent(ev: WSEvent, doCommit: boolean, isForward: boolean): void {
       const edge = edgeRepr.formatEdge(ev.from, ev.to);
       if (edgeStateEvents.has(ev.event) === doCommit) {
         d3.select(`[id="${edge}"]`).classed(ev.event, isForward);
+        switch (ev.event) {
+          case "next":
+          // case "request":
+            d3.select(`[id="${edge}"] > text`)
+              .text(isForward ? JSON.stringify(ev.value) : null);
+            break;
+        }
       }
       break;
     }
