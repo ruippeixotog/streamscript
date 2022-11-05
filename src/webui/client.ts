@@ -1,8 +1,9 @@
 import * as d3 from "d3";
 import { graphviz } from "d3-graphviz";
 import Graph from "../compiler/graph";
-import { WSServerMessage, WSEvent } from "./types";
+import { WSServerMessage, WSEvent, WSEventNodeType, WSEventEdgeType } from "./types";
 import dot from "../viz/dot";
+import edgeRepr from "../viz/edge_repr";
 
 // ------
 // Server state
@@ -16,8 +17,6 @@ let history: WSEvent[] = [];
 // ------
 
 const openedSubgraphs = new Set<string>();
-const nodeIndex = {};
-const edgeIndex = {};
 let currentEventIdx = 0;
 
 // ------
@@ -28,7 +27,7 @@ const historySlider = document.querySelector("#history") as HTMLInputElement;
 const eventText = document.querySelector("#event") as HTMLSpanElement;
 
 // ------
-// UI setup
+// Graph UI
 // ------
 
 const d3Graph = graphviz("#main")
@@ -40,26 +39,20 @@ const d3Graph = graphviz("#main")
   .attributer(function (datum) {
     switch (datum.attributes.class) {
       case "cluster": {
-        (this as Element).addEventListener("click", () => {
-          openedSubgraphs.delete((datum.key as string).replace("cluster_", ""));
-          updateGraph();
-        });
+        // (this as Element).addEventListener("click", () => {
+        //   openedSubgraphs.delete((datum.key as string).replace("cluster_", ""));
+        //   updateGraph();
+        // });
         break;
       }
       case "node": {
-        nodeIndex[datum.key] = datum;
-        if (datum.key.startsWith("Function")) {
-          (this as Element).addEventListener("click", () => {
-            openedSubgraphs.add(datum.key);
-            updateGraph();
-          });
-        }
+        // if (datum.key.startsWith("Function")) {
+        //   (this as Element).addEventListener("click", () => {
+        //     openedSubgraphs.add(datum.key);
+        //     updateGraph();
+        //   });
+        // }
         break;
-      }
-      case "edge": {
-        const [from, to] = datum.key.split("->");
-        edgeIndex[from] ||= {};
-        edgeIndex[from][to] = datum;
       }
     }
   })
@@ -70,23 +63,66 @@ const d3Graph = graphviz("#main")
   })
   .onerror(console.error);
 
-function updateSliderAndEvent(): void {
-  historySlider.setAttribute("max", history.length.toString());
-  eventText.innerHTML = JSON.stringify(history[currentEventIdx]);
-}
-
 function updateGraph(): void {
   const dotStr = dot.toDOT(graph, [...openedSubgraphs]);
   d3Graph.renderDot(dotStr);
 }
 
+// ------
+// Events slider
+// ------
+
+const nodeStateEvents = new Set<WSEventNodeType>(["terminated"]);
+const edgeStateEvents = new Set<WSEventEdgeType>(["completed", "errored"]);
+
+function drawEvent(ev: WSEvent, doCommit: boolean, isForward: boolean): void {
+  switch (ev.type) {
+    case "node": {
+      if (nodeStateEvents.has(ev.event) === doCommit) {
+        d3.select(`[id="${ev.node}"]`).classed(ev.event, isForward);
+      }
+      break;
+    }
+    case "edge": {
+      const edge = edgeRepr.formatEdge(ev.from, ev.to);
+      if (edgeStateEvents.has(ev.event) === doCommit) {
+        d3.select(`[id="${edge}"]`).classed(ev.event, isForward);
+      }
+      break;
+    }
+  }
+}
+
+const commitEvent = (ev: WSEvent): void => drawEvent(ev, true, true);
+const revertEvent = (ev: WSEvent): void => drawEvent(ev, true, false);
+const activateEvent = (ev: WSEvent): void => drawEvent(ev, false, true);
+const deactivateEvent = (ev: WSEvent): void => drawEvent(ev, false, false);
+
 historySlider.oninput = () => {
-  currentEventIdx = parseInt(historySlider.value) - 1;
+  const newEventIdx = parseInt(historySlider.value) - 1;
+  for (let i = currentEventIdx + 1; i <= newEventIdx; i++) {
+    if (i > 1) deactivateEvent(history[i - 2]);
+    commitEvent(history[i - 1]);
+    activateEvent(history[i - 1]);
+  }
+  for (let i = currentEventIdx; i > newEventIdx; i--) {
+    deactivateEvent(history[i - 1]);
+    revertEvent(history[i - 1]);
+    if (i > 1) activateEvent(history[i - 2]);
+  }
+  currentEventIdx = newEventIdx;
   updateSliderAndEvent();
 };
 
+function updateSliderAndEvent(): void {
+  historySlider.setAttribute("max", (history.length + 1).toString());
+  eventText.innerHTML = currentEventIdx === 0 ?
+    "initial state" :
+    JSON.stringify(history[currentEventIdx - 1]);
+}
+
 // ------
-// WebSocket connection setup
+// WebSocket connection
 // ------
 
 const ws = new WebSocket(`ws://${window.location.hostname}:${window.location.port}/api/listen`);

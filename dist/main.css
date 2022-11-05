@@ -59,3 +59,62 @@ svg {
   background: #04AA6D;
   cursor: pointer;
 }
+
+.node.terminated polygon {
+  stroke: gray;
+  stroke-dasharray: 4;
+}
+
+.node.terminated text {
+  fill: gray;
+}
+
+.edge.completed path {
+  stroke: gray;
+  stroke-dasharray: 4;
+}
+
+.edge.completed polygon {
+  fill: transparent;
+  stroke: gray;
+  stroke-dasharray: 4;
+}
+
+.edge.errored path {
+  stroke: red;
+  stroke-dasharray: 4;
+}
+
+.edge.errored polygon {
+  fill: transparent;
+  stroke: red;
+  stroke-dasharray: 4;
+}
+
+.edge.next path {
+  stroke: lime;
+  stroke-width: 5;
+}
+
+.edge.next polygon {
+  stroke: lime;
+  stroke-width: 5;
+}
+
+.edge.request path {
+  stroke: blue;
+  stroke-width: 5;
+}
+
+.edge.request polygon {
+  stroke: blue;
+  stroke-width: 5;
+}
+
+.edge.cancel path {
+  stroke: red;
+}
+
+.edge.cancel polygon {
+  stroke: red;
+}

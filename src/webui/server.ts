@@ -45,14 +45,14 @@ async function serveWs(graph: Graph, port: number): Promise<PacketListener> {
 
   return {
     nodeListenerFor: (node, graphName) => ({
-      onTerminate: () => handleEvent({ type: "node", graphName, node, event: "terminate" })
+      onTerminate: () => handleEvent({ type: "node", graphName, node, event: "terminated" })
     }),
     edgeListenerFor: (from, to, graphName) => ({
       downstream: {
         onSubscribe: () => {},
         onNext: value => handleEvent({ type: "edge", graphName, from, to, event: "next", value }),
-        onError: () => handleEvent({ type: "edge", graphName, from, to, event: "error" }),
-        onComplete: () => handleEvent({ type: "edge", graphName, from, to, event: "complete" })
+        onError: () => handleEvent({ type: "edge", graphName, from, to, event: "errored" }),
+        onComplete: () => handleEvent({ type: "edge", graphName, from, to, event: "completed" })
       },
       upstream: {
         request: n => handleEvent({ type: "edge", graphName, from, to, event: "request", value: n }),

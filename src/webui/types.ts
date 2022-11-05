@@ -1,8 +1,8 @@
 import type { InPortRef, OutPortRef } from "../compiler/graph";
 import { GraphJSON } from "../compiler/graph";
 
-export type WSEventNodeType = "terminate";
-export type WSEventEdgeType = "next" | "error" | "complete" | "request" | "cancel";
+export type WSEventNodeType = "terminated";
+export type WSEventEdgeType = "next" | "errored" | "completed" | "request" | "cancel";
 
 export type WSEvent =
   { type: "node", graphName?: string, node: string, event: WSEventNodeType } |
