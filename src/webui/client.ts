@@ -16,6 +16,7 @@ let history: WSEvent[] = [];
 // Client state
 // ------
 
+let visibleHistory: WSEvent[] = [];
 const openedSubgraphs = new Set<string>();
 let currentEventIdx = 0;
 
@@ -39,19 +40,17 @@ const d3Graph = graphviz("#main")
   .attributer(function (datum) {
     switch (datum.attributes.class) {
       case "cluster": {
-        // (this as Element).addEventListener("click", () => {
-        //   openedSubgraphs.delete((datum.key as string).replace("cluster_", ""));
-        //   updateGraph();
-        // });
+        (this as Element).addEventListener("click", () => {
+          hideSubgraph((datum.key as string).replace("cluster_", ""));
+        });
         break;
       }
       case "node": {
-        // if (datum.key.startsWith("Function")) {
-        //   (this as Element).addEventListener("click", () => {
-        //     openedSubgraphs.add(datum.key);
-        //     updateGraph();
-        //   });
-        // }
+        if (datum.key.startsWith("Function")) {
+          (this as Element).addEventListener("click", () => {
+            showSubgraph(datum.key);
+          });
+        }
         break;
       }
     }
@@ -60,15 +59,51 @@ const d3Graph = graphviz("#main")
     d3.select("svg")
       .attr("width", null)
       .attr("height", null);
+    redrawEventState();
   })
   .onerror(console.error);
 
 function updateGraph(): void {
+  // if (currentEventIdx > 0) {
+  //   deactivateEvent(visibleHistory[currentEventIdx - 1]);
+  // }
   const dotStr = dot.toDOT(graph, {
     includeSubgraphs: [...openedSubgraphs],
     renderEmptyEdgeLabels: true
   });
   d3Graph.renderDot(dotStr);
+}
+
+// ------
+// Graph expansion
+// ------
+
+function showSubgraph(subgraphId: string): void {
+  openedSubgraphs.add(subgraphId);
+  onSubgraphVisibilityChange();
+  updateGraph();
+}
+
+function hideSubgraph(subgraphId: string): void {
+  openedSubgraphs.delete(subgraphId);
+  onSubgraphVisibilityChange();
+  updateGraph();
+}
+
+function onSubgraphVisibilityChange(): void {
+  const currEvent = visibleHistory[currentEventIdx - 1];
+
+  visibleHistory = [];
+  for (let i = 0; i < history.length; i++) {
+    const ev = history[i];
+    if (!ev.graphName || openedSubgraphs.has(ev.graphName)) {
+      visibleHistory.push(ev);
+    }
+    if (ev === currEvent) {
+      currentEventIdx = visibleHistory.length;
+    }
+  }
+  updateSliderAndEvent();
 }
 
 // ------
@@ -93,8 +128,8 @@ function drawEvent(ev: WSEvent, doCommit: boolean, isForward: boolean): void {
         switch (ev.event) {
           case "next":
           // case "request":
-            d3.select(`[id="${edge}"] > text`)
-              .text(isForward ? JSON.stringify(ev.value) : null);
+            // d3.select(`[id="${edge}"] > text`)
+            //   .text(isForward ? JSON.stringify(ev.value) : " ");
             break;
         }
       }
@@ -109,20 +144,32 @@ const activateEvent = (ev: WSEvent): void => drawEvent(ev, false, true);
 const deactivateEvent = (ev: WSEvent): void => drawEvent(ev, false, false);
 
 historySlider.oninput = () => {
-  const newEventIdx = parseInt(historySlider.value) - 1;
+  onEventIndexChanged(parseInt(historySlider.value) - 1);
+};
+
+function onEventIndexChanged(newEventIdx: number): void {
   for (let i = currentEventIdx + 1; i <= newEventIdx; i++) {
-    if (i > 1) deactivateEvent(history[i - 2]);
-    commitEvent(history[i - 1]);
-    activateEvent(history[i - 1]);
+    if (i > 1) deactivateEvent(visibleHistory[i - 2]);
+    commitEvent(visibleHistory[i - 1]);
+    activateEvent(visibleHistory[i - 1]);
   }
   for (let i = currentEventIdx; i > newEventIdx; i--) {
-    deactivateEvent(history[i - 1]);
-    revertEvent(history[i - 1]);
-    if (i > 1) activateEvent(history[i - 2]);
+    deactivateEvent(visibleHistory[i - 1]);
+    revertEvent(visibleHistory[i - 1]);
+    if (i > 1) activateEvent(visibleHistory[i - 2]);
   }
   currentEventIdx = newEventIdx;
   updateSliderAndEvent();
-};
+}
+
+function redrawEventState(): void {
+  for (let i = 0; i < currentEventIdx; i++) {
+    commitEvent(visibleHistory[i]);
+  }
+  if (currentEventIdx > 0) {
+    activateEvent(visibleHistory[currentEventIdx - 1]);
+  }
+}
 
 function updateSliderAndEvent(): void {
   function eventToText(ev: WSEvent): string {
@@ -142,10 +189,12 @@ function updateSliderAndEvent(): void {
     }
   }
 
-  historySlider.setAttribute("max", (history.length + 1).toString());
-  eventText.textContent = currentEventIdx === 0 ?
+  historySlider.value = (currentEventIdx + 1).toString();
+  historySlider.max = (visibleHistory.length + 1).toString();
+  eventText.textContent = `(${currentEventIdx + 1}/${visibleHistory.length + 1}) `;
+  eventText.textContent += currentEventIdx === 0 ?
     "initial state" :
-    eventToText(history[currentEventIdx - 1]);
+    eventToText(visibleHistory[currentEventIdx - 1]);
 }
 
 // ------
@@ -169,10 +218,12 @@ ws.onmessage = ev => {
       console.log("History received", msg.events);
       history = msg.events;
       updateSliderAndEvent();
+      onSubgraphVisibilityChange();
       break;
     case "event":
       console.log("New event received", msg.event);
       history.push(msg.event);
       updateSliderAndEvent();
+      onSubgraphVisibilityChange();
   }
 };
