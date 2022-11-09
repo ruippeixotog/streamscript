@@ -1,4 +1,4 @@
-html, body {
+html, body, #root {
   height: calc(100% - 50px);
   margin: 0;
   padding: 10px;

@@ -5,17 +5,11 @@
     <title>StreamScript UI</title>
     <!-- <link rel="icon" type="image/x-icon" href="/img/favicon.ico"> -->
     <link rel="stylesheet" href="main.css">
-    <script src="https://unpkg.com/@hpcc-js/wasm/dist/index.min.js" type="application/javascript/"></script>
+    <script src="https://unpkg.com/@hpcc-js/wasm@1.20.1/dist/index.min.js" type="application/javascript"></script>
   </head>
 
   <body>
-    <div id="main"></div>
-    <div class="slidecontainer">
-      <input type="range" min="1" max="1" value="1" class="slider" id="history">
-    </div>
-    <div class="eventcontainer">
-      <span id="event"></span>
-    </div>
+    <div id="root"></div>
     <script src="bundle.js"></script>
   </body>
 </html>

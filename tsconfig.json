@@ -5,7 +5,8 @@
     "moduleResolution": "node",
     "noEmit": true,
     "strictNullChecks": true,
-    "target": "esnext"
+    "target": "esnext",
+    "jsx": "react"
   },
   "include": [
     "src/**/*",
