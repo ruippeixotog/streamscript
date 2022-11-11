@@ -60,11 +60,12 @@ export default function GraphView(): JSX.Element {
     });
 
     graphviz("#main")
-    // .transition(() =>
-    //   d3.transition()
-    //     .duration(2000)
-    //     .ease(d3.easeQuad)
-    // )
+      // .transition(() =>
+      //   d3.transition()
+      //     .duration(2000)
+      //     .ease(d3.easeQuad)
+      // )
+      .fit(true)
       .attributer(function (datum) {
         switch (datum.attributes.class) {
           case "cluster": {
@@ -83,13 +84,7 @@ export default function GraphView(): JSX.Element {
           }
         }
       })
-      .on("renderEnd", () => {
-        d3.select("svg")
-          .attr("width", null)
-          .attr("height", null);
-        setRenderingState("rendered");
-        // redrawEventState();
-      })
+      .on("renderEnd", () => setRenderingState("rendered"))
       .onerror(console.error)
       .renderDot(dotStr);
 
@@ -125,5 +120,5 @@ export default function GraphView(): JSX.Element {
     prevCurrIndexRef.current = currentEventIdx;
   }, [currentEventIdx]);
 
-  return <div id="main"></div>;
+  return <div id="main" />;
 }
