@@ -25,8 +25,8 @@ function drawEvent(ev: WSEvent, doCommit: boolean, isForward: boolean): void {
         switch (ev.event) {
           case "next":
           // case "request":
-            // d3.select(`[id="${edge}"] > text`)
-            //   .text(isForward ? JSON.stringify(ev.value) : " ");
+            document.querySelector(`[id="${edge}"] > text`)!.childNodes[0].textContent =
+              isForward ? JSON.stringify(ev.value) : null;
             break;
         }
       }
@@ -53,6 +53,10 @@ export default function GraphView(): JSX.Element {
 
   useEffect(() => {
     if (!graph) return;
+
+    // if (currentEventIdx > 0) {
+    //   deactivateEvent(visibleHistory[currentEventIdx - 1]);
+    // }
 
     const dotStr = dot.toDOT(graph, {
       includeSubgraphs: [...openedSubgraphs],
