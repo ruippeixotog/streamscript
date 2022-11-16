@@ -1,8 +1,11 @@
 import type { InPortRef, OutPortRef } from "../compiler/graph";
 import { GraphJSON } from "../compiler/graph";
 
-export type WSEventNodeType = "terminated";
-export type WSEventEdgeType = "next" | "errored" | "completed" | "request" | "cancel";
+export const NODE_TYPES = ["terminated"] as const;
+export const EDGE_TYPES = ["next", "errored", "completed", "request", "cancel"] as const;
+
+export type WSEventNodeType = typeof NODE_TYPES[number];
+export type WSEventEdgeType = typeof EDGE_TYPES[number];
 
 export type WSEvent =
   { type: "node", graphName?: string, node: string, event: WSEventNodeType } |

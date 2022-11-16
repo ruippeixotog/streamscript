@@ -35,7 +35,7 @@ async function serveWs(graph: Graph, port: number): Promise<PacketListener> {
   app.use(express.static("dist"));
 
   const server = app.listen(port, () => {
-    console.log("Debugging server listening on port %s", (server.address() as AddressInfo).port);
+    console.log("Debugging server available at http://localhost:%d", (server.address() as AddressInfo).port);
   });
 
   function handleEvent(ev: WSEvent): void {
