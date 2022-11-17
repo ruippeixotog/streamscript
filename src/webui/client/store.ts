@@ -1,7 +1,7 @@
 import { configureStore, Draft, PayloadAction } from "@reduxjs/toolkit";
 import { createSlice } from "@reduxjs/toolkit";
 import Graph from "../../compiler/graph";
-import { WSEvent } from "../types";
+import { EDGE_TYPES, NODE_TYPES, WSEvent, WSEventEdgeType, WSEventNodeType } from "../types";
 import { enableMapSet, original } from "immer";
 
 enableMapSet();
@@ -10,32 +10,45 @@ type MainState = {
   // server state
   graph: Graph | null,
   serverHistory: WSEvent[],
-  // derived state
-  visibleHistory: WSEvent[],
   // client state
   currentEventIdx: number,
+  visibleEventTypes: Set<WSEventNodeType | WSEventEdgeType>,
   openedSubgraphs: Set<string>,
+  // derived state
+  visibleHistory: WSEvent[],
+  visibleToServerMapping: number[],
+  visibleEventIdx: number
 };
 
 const initialState: MainState = {
   graph: null,
   serverHistory: [],
-  visibleHistory: [],
   currentEventIdx: 0,
-  openedSubgraphs: new Set()
+  visibleEventTypes: new Set([...NODE_TYPES, ...EDGE_TYPES]),
+  openedSubgraphs: new Set(),
+  visibleHistory: [],
+  visibleToServerMapping: [],
+  visibleEventIdx: 0
 };
 
 function updateVisibleHistory(state: Draft<MainState>): void {
-  const currEvent = state.visibleHistory[state.currentEventIdx - 1];
+  const currEvent = state.visibleHistory[state.visibleEventIdx - 1];
 
   state.visibleHistory = [];
+  state.visibleToServerMapping = [0];
   for (let i = 0; i < state.serverHistory.length; i++) {
     const ev = state.serverHistory[i];
-    if (!ev.graphName || state.openedSubgraphs.has(ev.graphName)) {
+
+    const isSubgraphShown = !ev.graphName || state.openedSubgraphs.has(ev.graphName);
+    const isEventTypeShown = state.visibleEventTypes.has(ev.event);
+
+    if (isSubgraphShown && isEventTypeShown) {
       state.visibleHistory.push(ev);
+      state.visibleToServerMapping.push(i + 1);
     }
     if (currEvent !== undefined && original(ev) === original(currEvent)) {
-      state.currentEventIdx = state.visibleHistory.length;
+      state.visibleEventIdx = state.visibleHistory.length;
+      state.currentEventIdx = state.visibleToServerMapping[state.visibleEventIdx];
     }
   }
 }
@@ -56,7 +69,16 @@ const mainSlice = createSlice({
       updateVisibleHistory(state);
     },
     selectEventIndex: (state, action: PayloadAction<number>) => {
-      state.currentEventIdx = action.payload;
+      state.visibleEventIdx = action.payload;
+      state.currentEventIdx = state.visibleToServerMapping[action.payload];
+    },
+    showEventType: (state, action: PayloadAction<WSEventNodeType | WSEventEdgeType>) => {
+      state.visibleEventTypes.add(action.payload);
+      updateVisibleHistory(state);
+    },
+    hideEventType: (state, action: PayloadAction<WSEventNodeType | WSEventEdgeType>) => {
+      state.visibleEventTypes.delete(action.payload);
+      updateVisibleHistory(state);
     },
     openSubgraph: (state, action: PayloadAction<string>) => {
       state.openedSubgraphs.add(action.payload);
@@ -75,7 +97,7 @@ const store = configureStore({
 });
 
 // Action creators are generated for each case reducer function
-export const { wsGraph, wsHistory, wsEvent, selectEventIndex, openSubgraph, closeSubgraph } = mainSlice.actions;
+export const { wsGraph, wsHistory, wsEvent, selectEventIndex, showEventType, hideEventType, openSubgraph, closeSubgraph } = mainSlice.actions;
 
 export default store;
 

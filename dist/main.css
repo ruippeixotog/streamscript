@@ -26,6 +26,12 @@ svg {
   /* outline: 1px solid blue; */
 }
 
+#event-type-filters {
+  width: 100%;
+  display: flex;
+  justify-content: space-evenly;
+}
+
 .slidecontainer {
   width: 100%;
 }

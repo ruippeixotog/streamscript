@@ -24,11 +24,14 @@ function drawEvent(ev: WSEvent, doCommit: boolean, isForward: boolean): void {
         const edgeVizId = repr.formatEdge(ev.from, ev.to, ev.graphName);
         d3.select(`[id="${edgeVizId}"]`).classed(ev.event, isForward);
         switch (ev.event) {
-          case "next":
+          case "next": {
           // case "request":
-            document.querySelector(`[id="${edgeVizId}"] > text`)!.childNodes[0].textContent =
-              isForward ? JSON.stringify(ev.value) : null;
+            const edgeText = document.querySelector(`[id="${edgeVizId}"] > text`);
+            if (edgeText !== null) {
+              edgeText.childNodes[0].textContent = isForward ? JSON.stringify(ev.value) : null;
+            }
             break;
+          }
         }
       }
       break;
@@ -46,7 +49,7 @@ export default function GraphView(): JSX.Element {
 
   const graph = useAppSelector(state => state.graph);
   const openedSubgraphs = useAppSelector(state => state.openedSubgraphs);
-  const visibleHistory = useAppSelector(state => state.visibleHistory);
+  const serverHistory = useAppSelector(state => state.serverHistory);
   const currentEventIdx = useAppSelector(state => state.currentEventIdx);
   const dispatch = useAppDispatch();
 
@@ -102,10 +105,10 @@ export default function GraphView(): JSX.Element {
     if (renderingState !== "rendered") return;
 
     for (let i = 0; i < currentEventIdx; i++) {
-      commitEvent(visibleHistory[i]);
+      commitEvent(serverHistory[i]);
     }
     if (currentEventIdx > 0) {
-      activateEvent(visibleHistory[currentEventIdx - 1]);
+      activateEvent(serverHistory[currentEventIdx - 1]);
     }
     prevCurrIndexRef.current = currentEventIdx;
     setRenderingState("idle");
@@ -114,16 +117,29 @@ export default function GraphView(): JSX.Element {
   useEffect(() => {
     if (renderingState !== "idle" || triggeredRender) return;
 
+    if (prevCurrIndexRef.current) {
+      deactivateEvent(serverHistory[prevCurrIndexRef.current - 1]);
+    }
     for (let i = (prevCurrIndexRef.current || 0) + 1; i <= currentEventIdx; i++) {
-      if (i > 1) deactivateEvent(visibleHistory[i - 2]);
-      commitEvent(visibleHistory[i - 1]);
-      activateEvent(visibleHistory[i - 1]);
+      commitEvent(serverHistory[i - 1]);
     }
     for (let i = (prevCurrIndexRef.current || 0); i > currentEventIdx; i--) {
-      deactivateEvent(visibleHistory[i - 1]);
-      revertEvent(visibleHistory[i - 1]);
-      if (i > 1) activateEvent(visibleHistory[i - 2]);
+      revertEvent(serverHistory[i - 1]);
     }
+    if (currentEventIdx > 0) {
+      activateEvent(serverHistory[currentEventIdx - 1]);
+    }
+
+    // for (let i = (prevCurrIndexRef.current || 0) + 1; i <= currentEventIdx; i++) {
+    //   if (i > 1) deactivateEvent(serverHistory[i - 2]);
+    //   commitEvent(serverHistory[i - 1]);
+    //   activateEvent(serverHistory[i - 1]);
+    // }
+    // for (let i = (prevCurrIndexRef.current || 0); i > currentEventIdx; i--) {
+    //   deactivateEvent(serverHistory[i - 1]);
+    //   revertEvent(serverHistory[i - 1]);
+    //   if (i > 1) activateEvent(serverHistory[i - 2]);
+    // }
     prevCurrIndexRef.current = currentEventIdx;
   }, [currentEventIdx]);
 

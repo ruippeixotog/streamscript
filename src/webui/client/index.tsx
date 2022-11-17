@@ -5,16 +5,14 @@ import { Provider } from "react-redux";
 import { WSServerMessage } from "../types";
 import Graph from "../../compiler/graph";
 import GraphView from "./GraphView";
-import Slider from "./Slider";
-import EventText from "./EventText";
+import EventControls from "./EventControls";
 
 const root = ReactDOM.createRoot(document.getElementById("root") as Element);
 
 root.render(
   <Provider store={store}>
     <GraphView />
-    <Slider />
-    <EventText />
+    <EventControls />
   </Provider>
 );
 

@@ -21,12 +21,12 @@ function eventToText(ev: WSEvent): string {
 
 export default function EventText(): JSX.Element {
   const visibleHistory = useAppSelector(state => state.visibleHistory);
-  const currentEventIdx = useAppSelector(state => state.currentEventIdx);
+  const visibleEventIdx = useAppSelector(state => state.visibleEventIdx);
 
-  let content = `(${currentEventIdx + 1}/${visibleHistory.length + 1}) `;
-  content += currentEventIdx === 0 ?
+  let content = `(${visibleEventIdx + 1}/${visibleHistory.length + 1}) `;
+  content += visibleEventIdx === 0 ?
     "initial state" :
-    eventToText(visibleHistory[currentEventIdx - 1]);
+    eventToText(visibleHistory[visibleEventIdx - 1]);
 
   return (
     <div className="eventcontainer">
