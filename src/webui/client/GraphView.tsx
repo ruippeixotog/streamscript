@@ -4,7 +4,7 @@ import { useAppDispatch, useAppSelector } from "./hooks";
 import { graphviz } from "d3-graphviz";
 import * as d3 from "d3";
 import dot from "../../viz/dot";
-import edgeRepr from "../../viz/edge_repr";
+import repr from "../../viz/repr";
 import { WSEvent, WSEventEdgeType, WSEventNodeType } from "../types";
 
 const nodeStateEvents = new Set<WSEventNodeType>(["terminated"]);
@@ -14,18 +14,19 @@ function drawEvent(ev: WSEvent, doCommit: boolean, isForward: boolean): void {
   switch (ev.type) {
     case "node": {
       if (nodeStateEvents.has(ev.event) === doCommit) {
-        d3.select(`[id="${ev.node}"]`).classed(ev.event, isForward);
+        const nodeVizId = repr.formatNode(ev.node, ev.graphName);
+        d3.select(`[id="${nodeVizId}"]`).classed(ev.event, isForward);
       }
       break;
     }
     case "edge": {
-      const edge = edgeRepr.formatEdge(ev.from, ev.to);
       if (edgeStateEvents.has(ev.event) === doCommit) {
-        d3.select(`[id="${edge}"]`).classed(ev.event, isForward);
+        const edgeVizId = repr.formatEdge(ev.from, ev.to, ev.graphName);
+        d3.select(`[id="${edgeVizId}"]`).classed(ev.event, isForward);
         switch (ev.event) {
           case "next":
           // case "request":
-            document.querySelector(`[id="${edge}"] > text`)!.childNodes[0].textContent =
+            document.querySelector(`[id="${edgeVizId}"] > text`)!.childNodes[0].textContent =
               isForward ? JSON.stringify(ev.value) : null;
             break;
         }
@@ -49,7 +50,8 @@ export default function GraphView(): JSX.Element {
   const currentEventIdx = useAppSelector(state => state.currentEventIdx);
   const dispatch = useAppDispatch();
 
-  const prevCurrIndexRef = useRef<number>();
+  const prevCurrIndexRef = useRef(0);
+  let triggeredRender = false;
 
   useEffect(() => {
     if (!graph) return;
@@ -93,6 +95,7 @@ export default function GraphView(): JSX.Element {
       .renderDot(dotStr);
 
     setRenderingState("rendering");
+    triggeredRender = true;
   }, [graph, openedSubgraphs]);
 
   useEffect(() => {
@@ -109,7 +112,7 @@ export default function GraphView(): JSX.Element {
   }, [renderingState]);
 
   useEffect(() => {
-    if (renderingState !== "idle") return;
+    if (renderingState !== "idle" || triggeredRender) return;
 
     for (let i = (prevCurrIndexRef.current || 0) + 1; i <= currentEventIdx; i++) {
       if (i > 1) deactivateEvent(visibleHistory[i - 2]);

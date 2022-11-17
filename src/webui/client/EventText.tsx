@@ -1,13 +1,12 @@
 import React from "react";
 import { useAppSelector } from "./hooks";
 import { WSEvent } from "../types";
-import edgeRepr from "../../viz/edge_repr";
+import repr from "../../viz/repr";
 
 function eventToText(ev: WSEvent): string {
-  const graphRepr = ev.graphName ? `<<${ev.graphName}>> ` : "";
   switch (ev.type) {
     case "node": {
-      return `${graphRepr} ${ev.node} ${ev.event.toUpperCase()}`;
+      return `${repr.formatNode(ev.node, ev.graphName)} ${ev.event.toUpperCase()}`;
     }
     case "edge": {
       const eventRepr =
@@ -15,7 +14,7 @@ function eventToText(ev: WSEvent): string {
           ev.event === "request" ? `REQUEST ${ev.value}` :
             ev.event.toUpperCase();
 
-      return `${graphRepr} ${edgeRepr.formatEdge(ev.from, ev.to)} ${eventRepr}`;
+      return `${repr.formatEdge(ev.from, ev.to, ev.graphName)} ${eventRepr}`;
     }
   }
 }
