@@ -11,7 +11,7 @@
   "license": "MIT",
   "main": "src/main.js",
   "dependencies": {
-    "express": "^4.21.0",
+    "express": "^4.21.1",
     "graphviz-builder": "^0.1.0",
     "json-stable-stringify": "^1.0.2",
     "ohm-js": "^16.4.0",
